@@ -1,0 +1,322 @@
+{
+  "info": {
+    "name": "ChocoAdmin API",
+    "description": "Colección completa de endpoints para la API de ChocoAdmin",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000/api", "type": "string" },
+    { "key": "token",    "value": "",                          "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const r = pm.response.json();",
+            "if (r.success) pm.collectionVariables.set('token', r.data.token);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@chocoadmin.com\",\n  \"contrasena\": \"Admin1234!\"\n}" }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Nuevo Usuario\",\n  \"email\": \"nuevo@choco.com\",\n  \"contrasena\": \"pass123\",\n  \"id_rol\": 4\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Listar usuarios",
+          "request": { "method": "GET", "url": "{{base_url}}/usuarios",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Obtener usuario",
+          "request": { "method": "GET", "url": "{{base_url}}/usuarios/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/usuarios",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Carlos Domi\",\n  \"email\": \"carlos@choco.com\",\n  \"contrasena\": \"pass123\",\n  \"id_rol\": 2\n}" }
+          }
+        },
+        {
+          "name": "Actualizar usuario",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/usuarios/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Admin Principal\"\n}" }
+          }
+        },
+        {
+          "name": "Eliminar usuario",
+          "request": { "method": "DELETE", "url": "{{base_url}}/usuarios/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Clientes",
+      "item": [
+        {
+          "name": "Listar clientes",
+          "request": { "method": "GET", "url": "{{base_url}}/clientes",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Obtener cliente",
+          "request": { "method": "GET", "url": "{{base_url}}/clientes/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Actualizar cliente",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/clientes/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"telefono\": \"3001234567\",\n  \"barrio\": \"El Poblado\",\n  \"ciudad\": \"Medellín\"\n}" }
+          }
+        },
+        {
+          "name": "Listar direcciones del cliente",
+          "request": { "method": "GET", "url": "{{base_url}}/clientes/1/direcciones",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Crear dirección del cliente",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/clientes/1/direcciones",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"direccion_linea\": \"Calle 10 # 45-20\",\n  \"barrio\": \"El Poblado\",\n  \"ciudad\": \"Medellín\",\n  \"departamento\": \"Antioquia\",\n  \"referencia\": \"Frente al parque\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Empleados",
+      "item": [
+        {
+          "name": "Listar empleados",
+          "request": { "method": "GET", "url": "{{base_url}}/empleados",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Obtener empleado",
+          "request": { "method": "GET", "url": "{{base_url}}/empleados/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Actualizar empleado",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/empleados/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cargo\": \"domiciliario\"\n}" }
+          }
+        },
+        {
+          "name": "Cambiar estado empleado",
+          "request": {
+            "method": "PATCH", "url": "{{base_url}}/empleados/1/estado",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": 0\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Listar categorías",
+          "request": { "method": "GET", "url": "{{base_url}}/productos/categorias",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Crear categoría",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/productos/categorias",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Chocolates\",\n  \"descripcion\": \"Productos de chocolate artesanal\"\n}" }
+          }
+        },
+        {
+          "name": "Listar toppings",
+          "request": { "method": "GET", "url": "{{base_url}}/productos/toppings",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Crear topping",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/productos/toppings",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Fresas\",\n  \"descripcion\": \"Fresas frescas\"\n}" }
+          }
+        },
+        {
+          "name": "Listar adiciones",
+          "request": { "method": "GET", "url": "{{base_url}}/productos/adiciones",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Crear adición",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/productos/adiciones",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Salsa extra\",\n  \"descripcion\": \"Salsa de chocolate adicional\",\n  \"precio\": 2000\n}" }
+          }
+        },
+        {
+          "name": "Listar productos",
+          "request": { "method": "GET", "url": "{{base_url}}/productos",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Obtener producto",
+          "request": { "method": "GET", "url": "{{base_url}}/productos/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Crear producto",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/productos",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"id_categoria\": 1,\n  \"nombre\": \"Fondue Especial\",\n  \"descripcion\": \"Fondue de chocolate belga\",\n  \"precio\": 25000,\n  \"permite_toppings\": 1,\n  \"max_toppings\": 3\n}" }
+          }
+        },
+        {
+          "name": "Actualizar producto",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/productos/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"precio\": 28000\n}" }
+          }
+        },
+        {
+          "name": "Cambiar estado producto",
+          "request": {
+            "method": "PATCH", "url": "{{base_url}}/productos/1/estado",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": 0\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ventas",
+      "item": [
+        {
+          "name": "Listar ventas",
+          "request": { "method": "GET", "url": "{{base_url}}/ventas",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Obtener venta",
+          "request": { "method": "GET", "url": "{{base_url}}/ventas/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Crear venta",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/ventas",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"id_cliente\": 1,\n  \"costo_domicilio\": 5000,\n  \"observaciones\": \"Sin azúcar\",\n  \"items\": [\n    {\n      \"id_producto\": 1,\n      \"cantidad\": 2,\n      \"toppings\": [1],\n      \"adiciones\": [\n        { \"id_adicion\": 1, \"cantidad\": 1 }\n      ]\n    }\n  ]\n}" }
+          }
+        },
+        {
+          "name": "Cambiar estado venta",
+          "request": {
+            "method": "PATCH", "url": "{{base_url}}/ventas/1/estado",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"id_estado\": 2\n}" }
+          }
+        },
+        {
+          "name": "Anular venta",
+          "request": {
+            "method": "PATCH", "url": "{{base_url}}/ventas/1/anular",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"motivo_anulacion\": \"Cliente canceló el pedido\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pagos",
+      "item": [
+        {
+          "name": "Listar métodos de pago",
+          "request": { "method": "GET", "url": "{{base_url}}/pagos/metodos-pago",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Crear método de pago",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/pagos/metodos-pago",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"PSE\",\n  \"descripcion\": \"Pago por PSE\"\n}" }
+          }
+        },
+        {
+          "name": "Registrar pago",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/pagos",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"id_venta\": 1,\n  \"id_empleado\": 1,\n  \"metodos\": [\n    {\n      \"id_metodo_pago\": 1,\n      \"monto\": 30000,\n      \"referencia\": \"EFECTIVO\"\n    },\n    {\n      \"id_metodo_pago\": 3,\n      \"monto\": 27000,\n      \"referencia\": \"NEQ-123456\"\n    }\n  ]\n}" }
+          }
+        },
+        {
+          "name": "Obtener pago",
+          "request": { "method": "GET", "url": "{{base_url}}/pagos/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        }
+      ]
+    },
+    {
+      "name": "Domicilios",
+      "item": [
+        {
+          "name": "Listar domicilios",
+          "request": { "method": "GET", "url": "{{base_url}}/domicilios",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Obtener domicilio",
+          "request": { "method": "GET", "url": "{{base_url}}/domicilios/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+        },
+        {
+          "name": "Asignar domicilio",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/domicilios/asignar",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"id_venta\": 1,\n  \"id_empleado\": 1,\n  \"id_estado_domicilio\": 1,\n  \"observaciones\": \"Entregar en portería\"\n}" }
+          }
+        },
+        {
+          "name": "Cambiar estado domicilio",
+          "request": {
+            "method": "PATCH", "url": "{{base_url}}/domicilios/1/estado",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"id_estado_domicilio\": 2,\n  \"hora_salida\": \"2026-03-17T20:00:00.000Z\"\n}" }
+          }
+        }
+      ]
+    }
+  ]
+}

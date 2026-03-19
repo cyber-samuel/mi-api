@@ -1,0 +1,19 @@
+const { Router } = require('express');
+const controller = require('./controller');
+const verifyToken = require('../../middlewares/verifyToken');
+
+const router = Router();
+
+// Públicos
+router.post('/login',               controller.login);
+router.post('/register',            controller.register);
+router.post('/recuperar-contrasena', controller.recuperarContrasena);
+router.patch('/cambiar-contrasena',  controller.cambiarContrasena);
+
+// Protegidos (solo requieren token válido, no permiso específico)
+router.post('/logout',              verifyToken, controller.logout);
+router.get('/perfil',               verifyToken, controller.getPerfil);
+router.patch('/perfil',             verifyToken, controller.editarPerfil);
+router.patch('/desactivar-cuenta',  verifyToken, controller.desactivarCuenta);
+
+module.exports = router;

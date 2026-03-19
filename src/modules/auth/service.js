@@ -1,0 +1,123 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const prisma = require('../../config/prisma');
+
+// ── Tokens en memoria (en prod usar Redis) ─────────────
+const resetTokens    = new Map(); // email → { token, expiry }
+const blacklistTokens = new Set(); // tokens invalidados por logout
+
+const isBlacklisted = (token) => blacklistTokens.has(token);
+
+// ── Login ───────────────────────────────────────────────
+const login = async ({ email, contrasena }) => {
+  const usuario = await prisma.usuario.findUnique({ where: { email }, include: { rol: true } });
+  if (!usuario) throw { status: 401, message: 'Credenciales inválidas' };
+  if (!usuario.estado) throw { status: 403, message: 'Usuario inactivo' };
+
+  const valida = await bcrypt.compare(contrasena, usuario.contrasena);
+  if (!valida) throw { status: 401, message: 'Credenciales inválidas' };
+
+  const token = jwt.sign(
+    { id_usuario: usuario.id_usuario, id_rol: usuario.id_rol, email: usuario.email },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+  );
+
+  const { contrasena: _, ...datos } = usuario;
+  return { token, usuario: datos };
+};
+
+// ── Register ────────────────────────────────────────────
+const register = async ({ nombre, email, contrasena, id_rol }) => {
+  const existe = await prisma.usuario.findUnique({ where: { email } });
+  if (existe) throw { status: 409, message: 'El email ya está registrado' };
+
+  const hash = await bcrypt.hash(contrasena, 10);
+  const rol  = await prisma.rol.findUnique({ where: { id_rol } });
+
+  return prisma.$transaction(async (tx) => {
+    const usuario = await tx.usuario.create({
+      data: { nombre, email, contrasena: hash, id_rol, estado: 1 },
+      include: { rol: true },
+    });
+
+    if (rol?.nombre === 'cliente') {
+      await tx.cliente.create({ data: { id_usuario: usuario.id_usuario } });
+    } else if (['domiciliario', 'confirmador_domicilio', 'admin'].includes(rol?.nombre)) {
+      await tx.empleado.create({
+        data: { id_usuario: usuario.id_usuario, cargo: rol.nombre, fecha_ingreso: new Date(), estado: 1 },
+      });
+    }
+
+    const { contrasena: _, ...datos } = usuario;
+    return datos;
+  });
+};
+
+// ── Logout ──────────────────────────────────────────────
+const logout = (token) => {
+  blacklistTokens.add(token);
+  return { mensaje: 'Sesión cerrada correctamente' };
+};
+
+// ── Recuperar contraseña ────────────────────────────────
+const recuperarContrasena = async ({ email }) => {
+  const usuario = await prisma.usuario.findUnique({ where: { email } });
+  if (!usuario) throw { status: 404, message: 'Email no registrado' };
+
+  const token = crypto.randomBytes(32).toString('hex');
+  resetTokens.set(email, { token, expiry: Date.now() + 3600_000 }); // 1 hora
+
+  // En producción: enviar por email. Aquí lo devolvemos para pruebas.
+  return { token, mensaje: 'Token generado. En producción se enviaría por email.' };
+};
+
+// ── Cambiar contraseña (con token de recuperación) ──────
+const cambiarContrasena = async ({ token, nueva_contrasena }) => {
+  let emailEncontrado = null;
+  for (const [email, data] of resetTokens.entries()) {
+    if (data.token === token && data.expiry > Date.now()) {
+      emailEncontrado = email;
+      break;
+    }
+  }
+  if (!emailEncontrado) throw { status: 400, message: 'Token inválido o expirado' };
+
+  const hash = await bcrypt.hash(nueva_contrasena, 10);
+  await prisma.usuario.update({ where: { email: emailEncontrado }, data: { contrasena: hash } });
+  resetTokens.delete(emailEncontrado);
+  return { mensaje: 'Contraseña actualizada correctamente' };
+};
+
+// ── Perfil ──────────────────────────────────────────────
+const getPerfil = async (id_usuario) => {
+  const u = await prisma.usuario.findUnique({
+    where: { id_usuario },
+    select: { id_usuario: true, nombre: true, email: true, estado: true, fecha_registro: true, rol: true,
+      cliente: true, empleado: true },
+  });
+  if (!u) throw { status: 404, message: 'Usuario no encontrado' };
+  return u;
+};
+
+// ── Editar perfil ───────────────────────────────────────
+const editarPerfil = async (id_usuario, { nombre, email }) => {
+  return prisma.usuario.update({
+    where: { id_usuario },
+    data: { nombre, email },
+    select: { id_usuario: true, nombre: true, email: true, estado: true, fecha_registro: true, rol: true },
+  });
+};
+
+// ── Desactivar cuenta ───────────────────────────────────
+const desactivarCuenta = async (id_usuario) => {
+  return prisma.usuario.update({
+    where: { id_usuario },
+    data: { estado: 0 },
+    select: { id_usuario: true, nombre: true, email: true, estado: true },
+  });
+};
+
+module.exports = { login, register, logout, recuperarContrasena, cambiarContrasena,
+  getPerfil, editarPerfil, desactivarCuenta, isBlacklisted };

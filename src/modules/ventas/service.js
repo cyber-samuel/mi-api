@@ -1,0 +1,133 @@
+const prisma = require('../../config/prisma');
+
+const includeDetalle = {
+  cliente:  { include: { usuario: { select: { nombre: true, email: true } } } },
+  estado:   true,
+  direccion: true,
+  detalleVentas: {
+    include: {
+      producto: true,
+      detalleToppings:  { include: { topping: true } },
+      detalleAdiciones: { include: { adicion: true } },
+    },
+  },
+};
+
+const listar = () => prisma.venta.findMany({ include: includeDetalle, orderBy: { fecha: 'desc' } });
+
+const filtrar = (estadoId) => prisma.venta.findMany({
+  where: { id_estado: Number(estadoId) },
+  include: includeDetalle,
+  orderBy: { fecha: 'desc' },
+});
+
+const obtener = async (id) => {
+  const v = await prisma.venta.findUnique({ where: { id_venta: id }, include: includeDetalle });
+  if (!v) throw { status: 404, message: 'Venta no encontrada' };
+  return v;
+};
+
+const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observaciones, items }) => {
+  const productoIds = items.map((i) => i.id_producto);
+  const productos   = await prisma.producto.findMany({ where: { id_producto: { in: productoIds } } });
+  const precioP     = Object.fromEntries(productos.map((p) => [p.id_producto, Number(p.precio)]));
+
+  const adicionIds  = items.flatMap((i) => (i.adiciones || []).map((a) => a.id_adicion));
+  const adiciones   = adicionIds.length ? await prisma.adicion.findMany({ where: { id_adicion: { in: adicionIds } } }) : [];
+  const precioA     = Object.fromEntries(adiciones.map((a) => [a.id_adicion, Number(a.precio)]));
+
+  let subtotal = 0;
+  const itemsCalc = items.map((item) => {
+    const pu = precioP[item.id_producto];
+    if (!pu) throw { status: 400, message: `Producto ${item.id_producto} no encontrado` };
+    const adicionesCalc = (item.adiciones || []).map((a) => ({
+      id_adicion: a.id_adicion, cantidad: a.cantidad,
+      precio_unitario: precioA[a.id_adicion],
+      subtotal: precioA[a.id_adicion] * a.cantidad,
+    }));
+    const itemSub = pu * item.cantidad + adicionesCalc.reduce((s, a) => s + a.subtotal, 0);
+    subtotal += itemSub;
+    return { ...item, precio_unitario: pu, subtotal: pu * item.cantidad, adicionesCalc };
+  });
+
+  const estadoPendiente = await prisma.estado.findFirst({ where: { nombre_estado: 'pendiente' } });
+
+  return prisma.venta.create({
+    data: {
+      id_cliente, id_estado: estadoPendiente?.id_estado || 1,
+      id_direccion, costo_domicilio, observaciones,
+      subtotal, total: subtotal + Number(costo_domicilio),
+      detalleVentas: {
+        create: itemsCalc.map((item) => ({
+          id_producto: item.id_producto, cantidad: item.cantidad,
+          precio_unitario: item.precio_unitario, subtotal: item.subtotal,
+          detalleToppings:  { create: (item.toppings || []).map((id_topping) => ({ id_topping })) },
+          detalleAdiciones: { create: item.adicionesCalc.map((a) => ({
+            id_adicion: a.id_adicion, cantidad: a.cantidad,
+            precio_unitario: a.precio_unitario, subtotal: a.subtotal,
+          })) },
+        })),
+      },
+    },
+    include: includeDetalle,
+  });
+};
+
+const cambiarEstado = async (id, id_estado) => {
+  await obtener(id);
+  return prisma.venta.update({ where: { id_venta: id }, data: { id_estado }, include: includeDetalle });
+};
+
+const anular = async (id, motivo_anulacion) => {
+  const venta = await obtener(id);
+  if (venta.estado?.nombre_estado === 'anulado') throw { status: 400, message: 'La venta ya está anulada' };
+  const estadoAnulado = await prisma.estado.findFirst({ where: { nombre_estado: 'anulado' } });
+  return prisma.venta.update({
+    where: { id_venta: id },
+    data: { motivo_anulacion, id_estado: estadoAnulado?.id_estado },
+    include: includeDetalle,
+  });
+};
+
+const comprobante = async (id) => {
+  const venta = await obtener(id);
+  return {
+    comprobante: {
+      numero:        `VTA-${String(venta.id_venta).padStart(6, '0')}`,
+      fecha:         venta.fecha,
+      cliente:       venta.cliente?.usuario?.nombre,
+      estado:        venta.estado?.nombre_estado,
+      items:         venta.detalleVentas.map((d) => ({
+        producto:   d.producto.nombre,
+        cantidad:   d.cantidad,
+        precio:     d.precio_unitario,
+        subtotal:   d.subtotal,
+        toppings:   d.detalleToppings.map((t) => t.topping.nombre),
+        adiciones:  d.detalleAdiciones.map((a) => ({ nombre: a.adicion.nombre, cantidad: a.cantidad })),
+      })),
+      subtotal:      venta.subtotal,
+      costo_domicilio: venta.costo_domicilio,
+      total:         venta.total,
+    },
+  };
+};
+
+const whatsapp = async (id) => {
+  const venta = await obtener(id);
+  const num   = `VTA-${String(venta.id_venta).padStart(6, '0')}`;
+  const msg   = encodeURIComponent(
+    `*Comprobante ${num}*\n` +
+    `Cliente: ${venta.cliente?.usuario?.nombre}\n` +
+    `Total: $${Number(venta.total).toLocaleString('es-CO')}\n` +
+    `Estado: ${venta.estado?.nombre_estado}\n` +
+    `Fecha: ${new Date(venta.fecha).toLocaleString('es-CO')}`
+  );
+  return { url: `https://wa.me/?text=${msg}`, comprobante_numero: num };
+};
+
+const totalVenta = async (id) => {
+  const v = await obtener(id);
+  return { id_venta: id, subtotal: v.subtotal, costo_domicilio: v.costo_domicilio, total: v.total };
+};
+
+module.exports = { listar, filtrar, obtener, crear, cambiarEstado, anular, comprobante, whatsapp, totalVenta };

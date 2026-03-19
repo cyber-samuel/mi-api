@@ -1,0 +1,332 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ROLES Y PERMISOS
+// ─────────────────────────────────────────────
+
+model Rol {
+  id_rol      Int     @id @default(autoincrement())
+  nombre      String  @db.VarChar(50)
+  descripcion String? @db.VarChar(150)
+
+  usuarios    Usuario[]
+  rolPermisos RolPermiso[]
+
+  @@map("roles")
+}
+
+model Permiso {
+  id_permiso  Int     @id @default(autoincrement())
+  nombre      String  @unique @db.VarChar(100)
+  descripcion String? @db.VarChar(150)
+
+  rolPermisos RolPermiso[]
+
+  @@map("permisos")
+}
+
+model RolPermiso {
+  id_rol_permiso Int @id @default(autoincrement())
+  id_rol         Int
+  id_permiso     Int
+
+  rol     Rol     @relation(fields: [id_rol], references: [id_rol])
+  permiso Permiso @relation(fields: [id_permiso], references: [id_permiso])
+
+  @@map("rol_permisos")
+}
+
+// ─────────────────────────────────────────────
+// USUARIOS, CLIENTES Y EMPLEADOS
+// ─────────────────────────────────────────────
+
+model Usuario {
+  id_usuario     Int      @id @default(autoincrement())
+  id_rol         Int
+  nombre         String   @db.VarChar(100)
+  email          String   @unique @db.VarChar(100)
+  contrasena     String   @db.VarChar(255)
+  estado         Int      @default(1) @db.SmallInt
+  fecha_registro DateTime @default(now())
+
+  rol      Rol       @relation(fields: [id_rol], references: [id_rol])
+  cliente  Cliente?
+  empleado Empleado?
+
+  @@map("usuarios")
+}
+
+model Cliente {
+  id_cliente Int     @id @default(autoincrement())
+  id_usuario Int     @unique
+  direccion  String? @db.VarChar(255)
+  barrio     String? @db.VarChar(100)
+  ciudad     String? @db.VarChar(100)
+  telefono   String? @db.VarChar(20)
+
+  usuario     Usuario     @relation(fields: [id_usuario], references: [id_usuario])
+  ventas      Venta[]
+  direcciones Direccion[]
+
+  @@map("clientes")
+}
+
+model Empleado {
+  id_empleado   Int      @id @default(autoincrement())
+  id_usuario    Int      @unique
+  cargo         String   @db.VarChar(50)
+  fecha_ingreso DateTime @db.Date
+  estado        Int      @default(1) @db.SmallInt
+
+  usuario            Usuario             @relation(fields: [id_usuario], references: [id_usuario])
+  pagos              Pago[]
+  ventasDomiciliario VentaDomiciliario[]
+
+  @@map("empleados")
+}
+
+// ─────────────────────────────────────────────
+// CATÁLOGO DE PRODUCTOS
+// ─────────────────────────────────────────────
+
+model Categoria {
+  id_categoria Int     @id @default(autoincrement())
+  nombre       String  @db.VarChar(100)
+  descripcion  String? @db.VarChar(150)
+  estado       Int     @default(1) @db.SmallInt
+
+  productos Producto[]
+
+  @@map("categorias")
+}
+
+model Producto {
+  id_producto      Int      @id @default(autoincrement())
+  id_categoria     Int
+  nombre           String   @db.VarChar(100)
+  descripcion      String?  @db.Text
+  tamano           String?  @db.VarChar(20)
+  precio           Decimal  @db.Decimal(10, 2)
+  permite_toppings Int      @default(0) @db.SmallInt
+  max_toppings     Int?
+  img              String?  @db.VarChar(255)
+  estado           Int      @default(1) @db.SmallInt
+
+  categoria     Categoria      @relation(fields: [id_categoria], references: [id_categoria])
+  detalleVentas DetalleVenta[]
+
+  @@map("productos")
+}
+
+model Topping {
+  id_topping  Int     @id @default(autoincrement())
+  nombre      String  @db.VarChar(100)
+  descripcion String? @db.VarChar(150)
+  img         String? @db.VarChar(255)
+  estado      Int     @default(1) @db.SmallInt
+
+  detalleToppings DetalleTopping[]
+
+  @@map("toppings")
+}
+
+model Adicion {
+  id_adicion  Int     @id @default(autoincrement())
+  nombre      String  @db.VarChar(100)
+  descripcion String? @db.VarChar(150)
+  img         String? @db.VarChar(255)
+  precio      Decimal @db.Decimal(10, 2)
+  estado      Int     @default(1) @db.SmallInt
+
+  detalleAdiciones DetalleAdicion[]
+
+  @@map("adiciones")
+}
+
+// ─────────────────────────────────────────────
+// ESTADOS
+// ─────────────────────────────────────────────
+
+model Estado {
+  id_estado     Int     @id @default(autoincrement())
+  nombre_estado String  @db.VarChar(50)
+  descripcion   String? @db.VarChar(150)
+
+  ventas Venta[]
+
+  @@map("estados")
+}
+
+model EstadoDomicilio {
+  id_estado_domicilio Int     @id @default(autoincrement())
+  nombre_estado       String  @db.VarChar(50)
+  descripcion         String? @db.VarChar(150)
+
+  ventasDomiciliario VentaDomiciliario[]
+
+  @@map("estados_domicilio")
+}
+
+// ─────────────────────────────────────────────
+// DIRECCIONES
+// ─────────────────────────────────────────────
+
+model Direccion {
+  id_direccion    Int      @id @default(autoincrement())
+  id_cliente      Int
+  direccion_linea String   @db.VarChar(255)
+  barrio          String?  @db.VarChar(100)
+  ciudad          String?  @db.VarChar(100)
+  departamento    String?  @db.VarChar(100)
+  lat             Decimal? @db.Decimal(10, 8)
+  lng             Decimal? @db.Decimal(11, 8)
+  referencia      String?  @db.VarChar(255)
+  estado          Int      @default(1) @db.SmallInt
+
+  cliente Cliente @relation(fields: [id_cliente], references: [id_cliente])
+  ventas  Venta[]
+
+  @@map("direcciones")
+}
+
+// ─────────────────────────────────────────────
+// VENTAS Y DETALLES
+// ─────────────────────────────────────────────
+
+model Venta {
+  id_venta         Int      @id @default(autoincrement())
+  id_cliente       Int
+  id_estado        Int
+  id_direccion     Int?
+  fecha            DateTime @default(now())
+  motivo_anulacion String?  @db.Text
+  subtotal         Decimal  @db.Decimal(10, 2)
+  costo_domicilio  Decimal  @default(0) @db.Decimal(10, 2)
+  total            Decimal  @db.Decimal(10, 2)
+  observaciones    String?  @db.Text
+
+  cliente   Cliente    @relation(fields: [id_cliente], references: [id_cliente])
+  estado    Estado     @relation(fields: [id_estado], references: [id_estado])
+  direccion Direccion? @relation(fields: [id_direccion], references: [id_direccion])
+
+  detalleVentas      DetalleVenta[]
+  pagos              Pago[]
+  ventasDomiciliario VentaDomiciliario[]
+
+  @@map("ventas")
+}
+
+model DetalleVenta {
+  id_detalle_venta Int     @id @default(autoincrement())
+  id_venta         Int
+  id_producto      Int
+  cantidad         Int
+  precio_unitario  Decimal @db.Decimal(10, 2)
+  subtotal         Decimal @db.Decimal(10, 2)
+
+  venta    Venta    @relation(fields: [id_venta], references: [id_venta])
+  producto Producto @relation(fields: [id_producto], references: [id_producto])
+
+  detalleAdiciones DetalleAdicion[]
+  detalleToppings  DetalleTopping[]
+
+  @@map("detalle_venta")
+}
+
+model DetalleAdicion {
+  id_detalle_adicion Int     @id @default(autoincrement())
+  id_detalle_venta   Int
+  id_adicion         Int
+  cantidad           Int
+  precio_unitario    Decimal @db.Decimal(10, 2)
+  subtotal           Decimal @db.Decimal(10, 2)
+
+  detalleVenta DetalleVenta @relation(fields: [id_detalle_venta], references: [id_detalle_venta])
+  adicion      Adicion      @relation(fields: [id_adicion], references: [id_adicion])
+
+  @@map("detalle_adicion")
+}
+
+model DetalleTopping {
+  id_detalle_topping Int @id @default(autoincrement())
+  id_detalle_venta   Int
+  id_topping         Int
+
+  detalleVenta DetalleVenta @relation(fields: [id_detalle_venta], references: [id_detalle_venta])
+  topping      Topping      @relation(fields: [id_topping], references: [id_topping])
+
+  @@map("detalle_topping")
+}
+
+// ─────────────────────────────────────────────
+// PAGOS
+// ─────────────────────────────────────────────
+
+model Pago {
+  id_pago      Int      @id @default(autoincrement())
+  id_venta     Int
+  id_empleado  Int
+  fecha_pago   DateTime @default(now())
+  total_pagado Decimal  @db.Decimal(10, 2)
+
+  venta    Venta    @relation(fields: [id_venta], references: [id_venta])
+  empleado Empleado @relation(fields: [id_empleado], references: [id_empleado])
+
+  detallePagos DetallePago[]
+
+  @@map("pagos")
+}
+
+model MetodoPago {
+  id_metodo_pago Int     @id @default(autoincrement())
+  nombre         String  @db.VarChar(50)
+  descripcion    String? @db.VarChar(150)
+  estado         Int     @default(1) @db.SmallInt
+
+  detallePagos DetallePago[]
+
+  @@map("metodos_pago")
+}
+
+model DetallePago {
+  id_detalle_pago Int     @id @default(autoincrement())
+  id_pago         Int
+  id_metodo_pago  Int
+  monto           Decimal @db.Decimal(10, 2)
+  comprobante     String? @db.VarChar(50)
+  referencia      String? @db.VarChar(100)
+
+  pago       Pago       @relation(fields: [id_pago], references: [id_pago])
+  metodoPago MetodoPago @relation(fields: [id_metodo_pago], references: [id_metodo_pago])
+
+  @@map("detalle_pagos")
+}
+
+// ─────────────────────────────────────────────
+// DOMICILIOS
+// ─────────────────────────────────────────────
+
+model VentaDomiciliario {
+  id_venta_domiciliario Int       @id @default(autoincrement())
+  id_empleado           Int
+  id_venta              Int
+  id_estado_domicilio   Int
+  hora_asignacion       DateTime?
+  hora_salida           DateTime?
+  hora_entrega          DateTime?
+  observaciones         String?   @db.VarChar(255)
+
+  empleado        Empleado        @relation(fields: [id_empleado], references: [id_empleado])
+  venta           Venta           @relation(fields: [id_venta], references: [id_venta])
+  estadoDomicilio EstadoDomicilio @relation(fields: [id_estado_domicilio], references: [id_estado_domicilio])
+
+  @@map("ventas_domiciliario")
+}

@@ -1,0 +1,134 @@
+require('dotenv').config();
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('Iniciando seed...\n');
+
+  // ── Roles ──────────────────────────────────────────────
+  const rolesData = [
+    { nombre: 'admin',                 descripcion: 'Administrador del sistema' },
+    { nombre: 'domiciliario',          descripcion: 'Entrega de pedidos a domicilio' },
+    { nombre: 'confirmador_domicilio', descripcion: 'Confirma y gestiona el estado de los domicilios' },
+    { nombre: 'cliente',               descripcion: 'Cliente de la tienda' },
+  ];
+  for (const r of rolesData) {
+    await prisma.rol.upsert({ where: { id_rol: rolesData.indexOf(r) + 1 }, update: r, create: r }).catch(() =>
+      prisma.rol.create({ data: r })
+    );
+  }
+  const roles = await prisma.rol.findMany();
+  console.log(`✓ Roles: ${roles.length} disponibles`);
+
+  // ── Permisos (upsert por nombre único) ─────────────────
+  const permisosList = [
+    // Auth
+    'auth.perfil', 'auth.editar-perfil', 'auth.cambiar-contrasena', 'auth.desactivar-cuenta',
+    // Roles
+    'roles.listar', 'roles.crear', 'roles.editar', 'roles.eliminar', 'roles.asignar-permisos',
+    'permisos.listar',
+    // Dashboard
+    'dashboard.ver',
+    // Usuarios
+    'usuarios.listar', 'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
+    'usuarios.activar-desactivar', 'usuarios.asignar-rol',
+    // Clientes
+    'clientes.listar', 'clientes.ver', 'clientes.editar', 'clientes.eliminar',
+    'clientes.buscar', 'clientes.estado', 'clientes.historial', 'clientes.favoritos', 'clientes.perfil',
+    // Empleados
+    'empleados.listar', 'empleados.ver', 'empleados.editar', 'empleados.estado',
+    'empleados.crear', 'empleados.eliminar', 'empleados.buscar',
+    // Productos
+    'productos.listar', 'productos.ver', 'productos.crear', 'productos.editar',
+    'productos.estado', 'productos.eliminar',
+    // Categorías
+    'categorias.listar', 'categorias.crear', 'categorias.editar', 'categorias.eliminar', 'categorias.estado',
+    // Toppings
+    'toppings.listar', 'toppings.ver', 'toppings.crear', 'toppings.editar', 'toppings.eliminar', 'toppings.estado',
+    // Adiciones
+    'adiciones.listar', 'adiciones.ver', 'adiciones.crear', 'adiciones.editar', 'adiciones.eliminar', 'adiciones.estado',
+    // Ventas
+    'ventas.listar', 'ventas.ver', 'ventas.crear', 'ventas.estado', 'ventas.anular',
+    'ventas.filtrar', 'ventas.comprobante',
+    // Pagos
+    'pagos.crear', 'pagos.ver',
+    // Métodos pago
+    'metodos_pago.listar', 'metodos_pago.crear', 'metodos_pago.editar', 'metodos_pago.estado',
+    // Domicilios
+    'domicilios.listar', 'domicilios.ver', 'domicilios.asignar', 'domicilios.estado', 'domicilios.filtrar',
+  ];
+
+  for (const nombre of permisosList) {
+    await prisma.permiso.upsert({
+      where:  { nombre },
+      update: { descripcion: nombre },
+      create: { nombre, descripcion: nombre },
+    });
+  }
+  console.log(`✓ Permisos: ${permisosList.length} sincronizados`);
+
+  // ── Rol admin → todos los permisos ────────────────────
+  const rolAdmin = await prisma.rol.findFirst({ where: { nombre: 'admin' } });
+  const todosPermisos = await prisma.permiso.findMany();
+
+  const yaAsignados = await prisma.rolPermiso.findMany({ where: { id_rol: rolAdmin.id_rol }, select: { id_permiso: true } });
+  const asignadosSet = new Set(yaAsignados.map((r) => r.id_permiso));
+  const nuevos = todosPermisos.filter((p) => !asignadosSet.has(p.id_permiso));
+
+  if (nuevos.length > 0) {
+    await prisma.rolPermiso.createMany({
+      data: nuevos.map((p) => ({ id_rol: rolAdmin.id_rol, id_permiso: p.id_permiso })),
+    });
+  }
+  console.log(`✓ RolPermisos: admin tiene ${todosPermisos.length} permisos`);
+
+  // ── Estados de venta ───────────────────────────────────
+  const estadosVenta = ['pendiente', 'en_proceso', 'listo', 'entregado', 'anulado'];
+  for (const nombre_estado of estadosVenta) {
+    const existe = await prisma.estado.findFirst({ where: { nombre_estado } });
+    if (!existe) await prisma.estado.create({ data: { nombre_estado, descripcion: nombre_estado } });
+  }
+  console.log(`✓ Estados venta: ${estadosVenta.length}`);
+
+  // ── Estados de domicilio ───────────────────────────────
+  const estadosDomi = ['asignado', 'en_camino', 'entregado'];
+  for (const nombre_estado of estadosDomi) {
+    const existe = await prisma.estadoDomicilio.findFirst({ where: { nombre_estado } });
+    if (!existe) await prisma.estadoDomicilio.create({ data: { nombre_estado, descripcion: nombre_estado } });
+  }
+  console.log(`✓ Estados domicilio: ${estadosDomi.length}`);
+
+  // ── Métodos de pago ────────────────────────────────────
+  const metodos = [
+    { nombre: 'efectivo',      descripcion: 'Pago en efectivo' },
+    { nombre: 'transferencia', descripcion: 'Transferencia bancaria' },
+    { nombre: 'nequi',         descripcion: 'Pago por Nequi' },
+    { nombre: 'daviplata',     descripcion: 'Pago por Daviplata' },
+  ];
+  for (const m of metodos) {
+    const existe = await prisma.metodoPago.findFirst({ where: { nombre: m.nombre } });
+    if (!existe) await prisma.metodoPago.create({ data: { ...m, estado: 1 } });
+  }
+  console.log(`✓ Métodos de pago: ${metodos.length}`);
+
+  // ── Usuario administrador ──────────────────────────────
+  const emailAdmin = 'admin@chocoadmin.com';
+  const existeAdmin = await prisma.usuario.findUnique({ where: { email: emailAdmin } });
+  if (!existeAdmin) {
+    const hash = await bcrypt.hash('Admin1234!', 10);
+    const u = await prisma.usuario.create({
+      data: { nombre: 'Administrador', email: emailAdmin, contrasena: hash, id_rol: rolAdmin.id_rol, estado: 1 },
+    });
+    await prisma.empleado.create({ data: { id_usuario: u.id_usuario, cargo: 'admin', fecha_ingreso: new Date(), estado: 1 } });
+    console.log(`✓ Admin creado → ${emailAdmin} / Admin1234!`);
+  } else {
+    console.log(`✓ Admin ya existe (${emailAdmin})`);
+  }
+
+  console.log('\n Seed completado');
+}
+
+main()
+  .catch((e) => { console.error(e); process.exit(1); })
+  .finally(() => prisma.$disconnect());

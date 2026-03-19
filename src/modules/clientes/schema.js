@@ -1,0 +1,20 @@
+const { z } = require('zod');
+
+const actualizarClienteSchema = z.object({
+  direccion:  z.string().max(255).optional(),
+  barrio:     z.string().max(100).optional(),
+  ciudad:     z.string().max(100).optional(),
+  telefono:   z.string().max(20).optional(),
+});
+
+const crearDireccionSchema = z.object({
+  direccion_linea: z.string().min(3).max(255),
+  barrio:          z.string().max(100).optional(),
+  ciudad:          z.string().max(100).optional(),
+  departamento:    z.string().max(100).optional(),
+  lat:             z.number().optional(),
+  lng:             z.number().optional(),
+  referencia:      z.string().max(255).optional(),
+});
+
+module.exports = { actualizarClienteSchema, crearDireccionSchema };
