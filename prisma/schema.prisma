@@ -16,6 +16,7 @@ model Rol {
   id_rol      Int     @id @default(autoincrement())
   nombre      String  @db.VarChar(50)
   descripcion String? @db.VarChar(150)
+  estado      Int     @default(1)
 
   usuarios    Usuario[]
   rolPermisos RolPermiso[]

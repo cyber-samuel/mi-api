@@ -38,4 +38,10 @@ const listarPermisos = async (req, res, next) => {
   try { success(res, await service.listarPermisos()); } catch (err) { next(err); }
 };
 
-module.exports = { listar, crear, actualizar, eliminar, asignarPermisos, listarPermisos };
+const activarDesactivar = async (req, res, next) => {
+  try {
+    success(res, await service.activarDesactivar(Number(req.params.id)), 'Estado cambiado');
+  } catch (err) { next(err); }
+};
+
+module.exports = { listar, crear, actualizar, eliminar, asignarPermisos, listarPermisos, activarDesactivar };

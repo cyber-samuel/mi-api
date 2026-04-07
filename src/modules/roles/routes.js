@@ -11,5 +11,6 @@ router.post('/',                 verifyToken, checkPermiso('roles.crear'),      
 router.put('/:id',               verifyToken, checkPermiso('roles.editar'),            controller.actualizar);
 router.delete('/:id',            verifyToken, checkPermiso('roles.eliminar'),          controller.eliminar);
 router.patch('/:id/permisos',    verifyToken, checkPermiso('roles.asignar-permisos'), controller.asignarPermisos);
+router.patch('/:id/activar-desactivar', verifyToken, checkPermiso('roles.activar-desactivar'), controller.activarDesactivar);
 
 module.exports = router;
