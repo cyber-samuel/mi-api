@@ -12,9 +12,12 @@ router.post('/recuperar-contrasena', controller.recuperarContrasena);
 router.patch('/cambiar-contrasena',  controller.cambiarContrasena);
 
 // Protegidos (solo requieren token válido, no permiso específico)
-router.post('/logout',              verifyToken, controller.logout);
-router.get('/perfil',               verifyToken, controller.getPerfil);
-router.patch('/perfil',             verifyToken, controller.editarPerfil);
-router.patch('/desactivar-cuenta',  verifyToken, controller.desactivarCuenta);
+router.post('/logout',                  verifyToken, controller.logout);
+router.get('/perfil',                   verifyToken, controller.getPerfil);
+router.patch('/perfil',                 verifyToken, controller.editarPerfil);
+router.patch('/desactivar-cuenta',      verifyToken, controller.desactivarCuenta);
+router.get('/mis-direcciones',          verifyToken, controller.misDirecciones);
+router.post('/mis-direcciones',         verifyToken, controller.crearMiDireccion);
+router.patch('/cambiar-contrasena-auth', verifyToken, controller.cambiarContrasenaAuth);
 
 module.exports = router;

@@ -12,4 +12,7 @@ const comprobante  = async (req, res, next) => { try { success(res, await servic
 const whatsapp     = async (req, res, next) => { try { success(res, await service.whatsapp(Number(req.params.id))); } catch (e) { next(e); } };
 const totalVenta   = async (req, res, next) => { try { success(res, await service.totalVenta(Number(req.params.id))); } catch (e) { next(e); } };
 
-module.exports = { listar, filtrar, obtener, crear, cambiarEstado, anular, comprobante, whatsapp, totalVenta };
+const misVentas    = async (req, res, next) => { try { success(res, await service.misVentas(req.user.id_usuario)); } catch (e) { next(e); } };
+const crearMiPedido= async (req, res, next) => { try { success(res, await service.crearMiPedido(req.user.id_usuario, req.body), 'Pedido creado', 201); } catch (e) { next(e); } };
+
+module.exports = { listar, filtrar, obtener, crear, cambiarEstado, anular, comprobante, whatsapp, totalVenta, misVentas, crearMiPedido };

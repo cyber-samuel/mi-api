@@ -11,7 +11,7 @@ const isBlacklisted = (token) => blacklistTokens.has(token);
 
 // ── Login ───────────────────────────────────────────────
 const login = async ({ email, contrasena }) => {
-  const usuario = await prisma.usuario.findUnique({ where: { email }, include: { rol: true } });
+  const usuario = await prisma.usuario.findUnique({ where: { email }, include: { rol: true, cliente: true, empleado: true } });
   if (!usuario) throw { status: 401, message: 'Credenciales inválidas' };
   if (!usuario.estado) throw { status: 403, message: 'Usuario inactivo' };
 

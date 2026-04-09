@@ -130,4 +130,37 @@ const totalVenta = async (id) => {
   return { id_venta: id, subtotal: v.subtotal, costo_domicilio: v.costo_domicilio, total: v.total };
 };
 
-module.exports = { listar, filtrar, obtener, crear, cambiarEstado, anular, comprobante, whatsapp, totalVenta };
+// Ventas del cliente autenticado
+const misVentas = async (id_usuario) => {
+  const cliente = await prisma.cliente.findUnique({ where: { id_usuario } });
+  if (!cliente) return [];
+  return prisma.venta.findMany({
+    where: { id_cliente: cliente.id_cliente },
+    include: includeDetalle,
+    orderBy: { fecha: 'desc' },
+  });
+};
+
+// Cliente crea su propio pedido
+const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_domicilio = 3000, observaciones, items }) => {
+  const cliente = await prisma.cliente.findUnique({ where: { id_usuario } });
+  if (!cliente) throw { status: 404, message: 'Perfil de cliente no encontrado. Regístrate como cliente.' };
+
+  let direccionId = id_direccion;
+  if (!direccionId && nueva_direccion) {
+    const dir = await prisma.direccion.create({
+      data: {
+        id_cliente:     cliente.id_cliente,
+        direccion_linea: nueva_direccion.direccion_linea,
+        barrio:          nueva_direccion.barrio    || null,
+        ciudad:          nueva_direccion.ciudad    || null,
+        referencia:      nueva_direccion.referencia || null,
+      },
+    });
+    direccionId = dir.id_direccion;
+  }
+
+  return crear({ id_cliente: cliente.id_cliente, id_direccion: direccionId, costo_domicilio, observaciones, items });
+};
+
+module.exports = { listar, filtrar, obtener, crear, cambiarEstado, anular, comprobante, whatsapp, totalVenta, misVentas, crearMiPedido };

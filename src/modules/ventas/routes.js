@@ -6,6 +6,8 @@ const checkPermiso = require('../../middlewares/checkPermiso');
 const router = Router();
 
 // Estáticas antes de /:id
+router.get('/mis-pedidos',    verifyToken,                                      controller.misVentas);
+router.post('/mi-pedido',     verifyToken,                                      controller.crearMiPedido);
 router.get('/filtrar',        verifyToken, checkPermiso('ventas.listar'),      controller.filtrar);
 router.get('/',               verifyToken, checkPermiso('ventas.listar'),      controller.listar);
 router.post('/',              verifyToken, checkPermiso('ventas.crear'),        controller.crear);
