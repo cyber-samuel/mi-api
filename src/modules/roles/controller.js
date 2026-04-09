@@ -6,6 +6,10 @@ const listar = async (req, res, next) => {
   try { success(res, await service.listar()); } catch (err) { next(err); }
 };
 
+const obtener = async (req, res, next) => {
+  try { success(res, await service.obtener(Number(req.params.id))); } catch (err) { next(err); }
+};
+
 const crear = async (req, res, next) => {
   try {
     const datos = crearRolSchema.parse(req.body);
@@ -44,4 +48,4 @@ const activarDesactivar = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { listar, crear, actualizar, eliminar, asignarPermisos, listarPermisos, activarDesactivar };
+module.exports = { listar, obtener, crear, actualizar, eliminar, asignarPermisos, listarPermisos, activarDesactivar };

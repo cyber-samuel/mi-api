@@ -14,5 +14,6 @@ router.get('/productos-mas-vendidos', ...auth, controller.productosMasVend);
 router.get('/total-dia',            ...auth, controller.totalDia);
 router.get('/totalidad-clientes',   ...auth, controller.totalidadClientes);
 router.get('/recaudo-pedidos',      ...auth, controller.recaudoPedidos);
+router.get('/pedidos-recientes',    ...auth, controller.pedidosRecientes);
 
 module.exports = router;

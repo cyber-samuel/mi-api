@@ -7,6 +7,7 @@ const router = Router();
 // Públicos
 router.post('/login',               controller.login);
 router.post('/register',            controller.register);
+router.post('/recuperar',           controller.recuperarContrasena);
 router.post('/recuperar-contrasena', controller.recuperarContrasena);
 router.patch('/cambiar-contrasena',  controller.cambiarContrasena);
 

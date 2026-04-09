@@ -42,7 +42,7 @@ const register = async ({ nombre, email, contrasena, id_rol }) => {
       include: { rol: true },
     });
 
-    if (rol?.nombre === 'cliente') {
+    if (id_rol === 2 || rol?.nombre === 'cliente') {
       await tx.cliente.create({ data: { id_usuario: usuario.id_usuario } });
     } else if (['domiciliario', 'confirmador_domicilio', 'admin'].includes(rol?.nombre)) {
       await tx.empleado.create({

@@ -50,6 +50,9 @@ const promociones = async () => {
   return prisma.producto.findMany({ where: { id_producto: { in: ids }, estado: 1 }, include: { categoria: true } });
 };
 
+const listarToppingsActivos  = () => prisma.topping.findMany({ where: { estado: 1 }, orderBy: { nombre: 'asc' } });
+const listarAdicionesActivas = () => prisma.adicion.findMany({ where: { estado: 1 }, orderBy: { nombre: 'asc' } });
+
 // ── Carrito en memoria ──────────────────────────────────
 // Map<id_usuario, [{id_item, id_producto, nombre, precio, cantidad, toppings, adiciones, subtotal}]>
 const carritos = new Map();
@@ -114,5 +117,6 @@ const totalCarrito = (id_usuario) => {
 
 module.exports = {
   listarProductos, obtenerProducto, listarCategorias, buscar, promociones,
+  listarToppingsActivos, listarAdicionesActivas,
   getCarrito, agregarItem, actualizarItem, eliminarItem, totalCarrito,
 };

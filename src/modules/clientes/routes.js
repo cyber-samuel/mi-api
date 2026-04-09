@@ -7,6 +7,7 @@ const router = Router();
 
 router.get('/buscar',                  verifyToken, checkPermiso('clientes.listar'),    controller.buscar);
 router.get('/',                        verifyToken, checkPermiso('clientes.listar'),    controller.listar);
+router.post('/',                       verifyToken, checkPermiso('clientes.crear'),     controller.crear);
 router.get('/:id',                     verifyToken, checkPermiso('clientes.ver'),       controller.obtener);
 router.put('/:id',                     verifyToken, checkPermiso('clientes.editar'),    controller.actualizar);
 router.delete('/:id',                  verifyToken, checkPermiso('clientes.eliminar'),  controller.eliminar);

@@ -105,5 +105,16 @@ const recaudoPedidos = async () => {
   };
 };
 
+const pedidosRecientes = async (limite = 10) => {
+  return prisma.venta.findMany({
+    take:    Number(limite),
+    orderBy: { fecha: 'desc' },
+    include: {
+      estado:  true,
+      cliente: { include: { usuario: { select: { nombre: true, email: true } } } },
+    },
+  });
+};
+
 module.exports = { ventasPorMes, ventasPorDia, ventasPorSemana, productosMasVendidos,
-  totalDia, totalidadClientes, recaudoPedidos };
+  totalDia, totalidadClientes, recaudoPedidos, pedidosRecientes };

@@ -8,6 +8,7 @@ const router = Router();
 router.get('/permisos',          verifyToken, checkPermiso('permisos.listar'),        controller.listarPermisos);
 router.get('/',                  verifyToken, checkPermiso('roles.listar'),            controller.listar);
 router.post('/',                 verifyToken, checkPermiso('roles.crear'),             controller.crear);
+router.get('/:id',               verifyToken, checkPermiso('roles.listar'),            controller.obtener);
 router.put('/:id',               verifyToken, checkPermiso('roles.editar'),            controller.actualizar);
 router.delete('/:id',            verifyToken, checkPermiso('roles.eliminar'),          controller.eliminar);
 router.patch('/:id/permisos',    verifyToken, checkPermiso('roles.asignar-permisos'), controller.asignarPermisos);

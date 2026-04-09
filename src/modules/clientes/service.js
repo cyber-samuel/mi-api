@@ -4,6 +4,22 @@ const incUsuario = { usuario: { select: { nombre: true, email: true, estado: tru
 
 const listar = () => prisma.cliente.findMany({ include: incUsuario });
 
+const crear = async ({ nombre, email, contrasena, direccion, barrio, ciudad, telefono }) => {
+  const existe = await prisma.usuario.findUnique({ where: { email } });
+  if (existe) throw { status: 409, message: 'El email ya está registrado' };
+  const bcrypt = require('bcryptjs');
+  const hash   = await bcrypt.hash(contrasena, 10);
+  return prisma.$transaction(async (tx) => {
+    const usuario = await tx.usuario.create({
+      data: { nombre, email, contrasena: hash, id_rol: 2, estado: 1 },
+    });
+    return tx.cliente.create({
+      data: { id_usuario: usuario.id_usuario, direccion, barrio, ciudad, telefono },
+      include: incUsuario,
+    });
+  });
+};
+
 const buscar = (q) => prisma.cliente.findMany({
   where: {
     OR: [
@@ -97,5 +113,5 @@ const perfil = async (id) => {
 const listarDirecciones = async (id) => { await obtener(id); return prisma.direccion.findMany({ where: { id_cliente: id } }); };
 const crearDireccion    = async (id, datos) => { await obtener(id); return prisma.direccion.create({ data: { ...datos, id_cliente: id, estado: 1 } }); };
 
-module.exports = { listar, buscar, obtener, actualizar, eliminar, cambiarEstado,
+module.exports = { listar, crear, buscar, obtener, actualizar, eliminar, cambiarEstado,
   historialPedidos, toppingsFavoritos, adicionesFavoritas, perfil, listarDirecciones, crearDireccion };

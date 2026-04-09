@@ -9,5 +9,7 @@ const totalDia          = async (req, res, next) => { try { success(res, await s
 const totalidadClientes = async (req, res, next) => { try { success(res, await service.totalidadClientes()); } catch (e) { next(e); } };
 const recaudoPedidos    = async (req, res, next) => { try { success(res, await service.recaudoPedidos());    } catch (e) { next(e); } };
 
+const pedidosRecientes = async (req, res, next) => { try { success(res, await service.pedidosRecientes(req.query.limite)); } catch (e) { next(e); } };
+
 module.exports = { ventasPorMes, ventasPorDia, ventasPorSemana, productosMasVend,
-  totalDia, totalidadClientes, recaudoPedidos };
+  totalDia, totalidadClientes, recaudoPedidos, pedidosRecientes };

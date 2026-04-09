@@ -1,5 +1,15 @@
 const { z } = require('zod');
 
+const crearClienteSchema = z.object({
+  nombre:    z.string().min(2),
+  email:     z.string().email(),
+  contrasena: z.string().min(6),
+  direccion: z.string().max(255).optional(),
+  barrio:    z.string().max(100).optional(),
+  ciudad:    z.string().max(100).optional(),
+  telefono:  z.string().max(20).optional(),
+});
+
 const actualizarClienteSchema = z.object({
   direccion:  z.string().max(255).optional(),
   barrio:     z.string().max(100).optional(),
@@ -17,4 +27,4 @@ const crearDireccionSchema = z.object({
   referencia:      z.string().max(255).optional(),
 });
 
-module.exports = { actualizarClienteSchema, crearDireccionSchema };
+module.exports = { crearClienteSchema, actualizarClienteSchema, crearDireccionSchema };

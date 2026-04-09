@@ -1,6 +1,7 @@
 const prisma = require('../../config/prisma');
 
-const listar = () => prisma.topping.findMany({ orderBy: { nombre: 'asc' } });
+const listar       = ()  => prisma.topping.findMany({ orderBy: { nombre: 'asc' } });
+const listarActivos = () => prisma.topping.findMany({ where: { estado: 1 }, orderBy: { nombre: 'asc' } });
 
 const obtener = async (id) => {
   const t = await prisma.topping.findUnique({ where: { id_topping: id } });
@@ -13,4 +14,4 @@ const actualizar   = async (id, datos) => { await obtener(id); return prisma.top
 const eliminar     = async (id) => { await obtener(id); return prisma.topping.delete({ where: { id_topping: id } }); };
 const cambiarEstado = async (id, estado) => { await obtener(id); return prisma.topping.update({ where: { id_topping: id }, data: { estado } }); };
 
-module.exports = { listar, obtener, crear, actualizar, eliminar, cambiarEstado };
+module.exports = { listar, listarActivos, obtener, crear, actualizar, eliminar, cambiarEstado };

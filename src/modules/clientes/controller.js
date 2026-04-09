@@ -1,8 +1,9 @@
 const service = require('./service');
-const { actualizarClienteSchema, crearDireccionSchema } = require('./schema');
+const { crearClienteSchema, actualizarClienteSchema, crearDireccionSchema } = require('./schema');
 const { success } = require('../../utils/response');
 
 const listar            = async (req, res, next) => { try { success(res, await service.listar()); } catch (e) { next(e); } };
+const crear             = async (req, res, next) => { try { success(res, await service.crear(crearClienteSchema.parse(req.body)), 'Cliente creado', 201); } catch (e) { next(e); } };
 const buscar            = async (req, res, next) => { try { success(res, await service.buscar(req.query.q || '')); } catch (e) { next(e); } };
 const obtener           = async (req, res, next) => { try { success(res, await service.obtener(Number(req.params.id))); } catch (e) { next(e); } };
 const actualizar        = async (req, res, next) => { try { success(res, await service.actualizar(Number(req.params.id), actualizarClienteSchema.parse(req.body)), 'Cliente actualizado'); } catch (e) { next(e); } };
@@ -15,5 +16,5 @@ const perfil            = async (req, res, next) => { try { success(res, await s
 const listarDirecciones = async (req, res, next) => { try { success(res, await service.listarDirecciones(Number(req.params.id))); } catch (e) { next(e); } };
 const crearDireccion    = async (req, res, next) => { try { success(res, await service.crearDireccion(Number(req.params.id), crearDireccionSchema.parse(req.body)), 'Dirección creada', 201); } catch (e) { next(e); } };
 
-module.exports = { listar, buscar, obtener, actualizar, eliminar, cambiarEstado,
+module.exports = { listar, crear, buscar, obtener, actualizar, eliminar, cambiarEstado,
   historialPedidos, toppingsFavoritos, adicionesFavoritas, perfil, listarDirecciones, crearDireccion };

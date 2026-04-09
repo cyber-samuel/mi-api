@@ -4,6 +4,15 @@ const listar = () => prisma.rol.findMany({
   include: { rolPermisos: { include: { permiso: true } } },
 });
 
+const obtener = async (id) => {
+  const rol = await prisma.rol.findUnique({
+    where: { id_rol: id },
+    include: { rolPermisos: { include: { permiso: true } } },
+  });
+  if (!rol) throw { status: 404, message: 'Rol no encontrado' };
+  return rol;
+};
+
 const crear = (datos) => prisma.rol.create({ data: datos });
 
 const actualizar = async (id, datos) => {
@@ -58,4 +67,4 @@ const activarDesactivar = async (id) => {
   });
 };
 
-module.exports = { listar, crear, actualizar, eliminar, asignarPermisos, listarPermisos, asignarRolUsuario, activarDesactivar };
+module.exports = { listar, obtener, crear, actualizar, eliminar, asignarPermisos, listarPermisos, asignarRolUsuario, activarDesactivar };

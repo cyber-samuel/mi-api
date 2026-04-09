@@ -10,6 +10,8 @@ router.get('/catalogo/promociones',    controller.promociones);
 router.get('/catalogo/categorias',     controller.listarCategorias);
 router.get('/catalogo/productos',      controller.listarProductos);
 router.get('/catalogo/productos/:id',  controller.obtenerProducto);
+router.get('/catalogo/toppings',       controller.listarToppingsActivos);
+router.get('/catalogo/adiciones',      controller.listarAdicionesActivas);
 
 // ── Carrito (requiere auth) ─────────────────────────────
 router.get('/carrito/total',   verifyToken, controller.totalCarrito);
