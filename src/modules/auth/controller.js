@@ -94,5 +94,18 @@ const cambiarContrasenaAuth = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const eliminarMiDireccion = async (req, res, next) => {
+  try {
+    const prisma = require('../../config/prisma');
+    const id = Number(req.params.id);
+    const cliente = await prisma.cliente.findUnique({ where: { id_usuario: req.user.id_usuario } });
+    if (!cliente) throw { status: 404, message: 'Perfil de cliente no encontrado' };
+    const dir = await prisma.direccion.findFirst({ where: { id_direccion: id, id_cliente: cliente.id_cliente } });
+    if (!dir) throw { status: 404, message: 'Dirección no encontrada' };
+    await prisma.direccion.update({ where: { id_direccion: id }, data: { estado: 0 } });
+    success(res, null, 'Dirección eliminada');
+  } catch (err) { next(err); }
+};
+
 module.exports = { login, register, logout, recuperarContrasena, cambiarContrasena,
-  getPerfil, editarPerfil, desactivarCuenta, misDirecciones, crearMiDireccion, cambiarContrasenaAuth };
+  getPerfil, editarPerfil, desactivarCuenta, misDirecciones, crearMiDireccion, eliminarMiDireccion, cambiarContrasenaAuth };

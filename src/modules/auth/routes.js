@@ -17,7 +17,8 @@ router.get('/perfil',                   verifyToken, controller.getPerfil);
 router.patch('/perfil',                 verifyToken, controller.editarPerfil);
 router.patch('/desactivar-cuenta',      verifyToken, controller.desactivarCuenta);
 router.get('/mis-direcciones',          verifyToken, controller.misDirecciones);
-router.post('/mis-direcciones',         verifyToken, controller.crearMiDireccion);
+router.post('/mis-direcciones',          verifyToken, controller.crearMiDireccion);
+router.delete('/mis-direcciones/:id',    verifyToken, controller.eliminarMiDireccion);
 router.patch('/cambiar-contrasena-auth', verifyToken, controller.cambiarContrasenaAuth);
 
 module.exports = router;

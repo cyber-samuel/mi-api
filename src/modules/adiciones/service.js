@@ -11,7 +11,12 @@ const obtener = async (id) => {
 
 const crear        = (datos) => prisma.adicion.create({ data: { ...datos, estado: 1 } });
 const actualizar   = async (id, datos) => { await obtener(id); return prisma.adicion.update({ where: { id_adicion: id }, data: datos }); };
-const eliminar     = async (id) => { await obtener(id); return prisma.adicion.delete({ where: { id_adicion: id } }); };
+const eliminar     = async (id) => {
+  await obtener(id);
+  const enUso = await prisma.detalleAdicion.count({ where: { id_adicion: id } });
+  if (enUso > 0) throw { status: 409, message: 'Esta adición está usada en ventas y no se puede eliminar' };
+  return prisma.adicion.update({ where: { id_adicion: id }, data: { estado: 0 } });
+};
 const cambiarEstado = async (id, estado) => { await obtener(id); return prisma.adicion.update({ where: { id_adicion: id }, data: { estado } }); };
 
 module.exports = { listar, listarActivas, obtener, crear, actualizar, eliminar, cambiarEstado };

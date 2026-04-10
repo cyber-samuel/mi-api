@@ -13,7 +13,14 @@ const includeDetalle = {
   },
 };
 
-const listar = () => prisma.venta.findMany({ include: includeDetalle, orderBy: { fecha: 'desc' } });
+const listar = async (nombreEstado) => {
+  if (nombreEstado) {
+    const estado = await prisma.estado.findFirst({ where: { nombre_estado: nombreEstado } });
+    if (!estado) return [];
+    return prisma.venta.findMany({ where: { id_estado: estado.id_estado }, include: includeDetalle, orderBy: { fecha: 'desc' } });
+  }
+  return prisma.venta.findMany({ include: includeDetalle, orderBy: { fecha: 'desc' } });
+};
 
 const filtrar = (estadoId) => prisma.venta.findMany({
   where: { id_estado: Number(estadoId) },
@@ -73,9 +80,15 @@ const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observacio
   });
 };
 
-const cambiarEstado = async (id, id_estado) => {
+const cambiarEstado = async (id, { id_estado, nombre_estado }) => {
   await obtener(id);
-  return prisma.venta.update({ where: { id_venta: id }, data: { id_estado }, include: includeDetalle });
+  let estadoId = id_estado;
+  if (!estadoId && nombre_estado) {
+    const estado = await prisma.estado.findFirst({ where: { nombre_estado } });
+    if (!estado) throw { status: 400, message: `Estado '${nombre_estado}' no existe` };
+    estadoId = estado.id_estado;
+  }
+  return prisma.venta.update({ where: { id_venta: id }, data: { id_estado: estadoId }, include: includeDetalle });
 };
 
 const anular = async (id, motivo_anulacion) => {

@@ -44,7 +44,10 @@ const actualizar = async (id, datos) => {
 
 const eliminar = async (id) => {
   const c = await obtener(id);
-  return prisma.usuario.delete({ where: { id_usuario: c.id_usuario } });
+  const ventasCount = await prisma.venta.count({ where: { id_cliente: id } });
+  if (ventasCount > 0) throw { status: 409, message: `No se puede eliminar: el cliente tiene ${ventasCount} venta(s) registrada(s)` };
+  // Soft delete: desactivar usuario
+  return prisma.usuario.update({ where: { id_usuario: c.id_usuario }, data: { estado: 0 }, select: { id_usuario: true, nombre: true, email: true, estado: true } });
 };
 
 const cambiarEstado = async (id, estado) => {

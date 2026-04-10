@@ -19,8 +19,8 @@ const actualizar = async (id, datos) => {
 const eliminar = async (id) => {
   await obtener(id);
   const enUso = await prisma.producto.count({ where: { id_categoria: id } });
-  if (enUso > 0) throw { status: 409, message: 'Categoría tiene productos asociados' };
-  return prisma.categoria.delete({ where: { id_categoria: id } });
+  if (enUso > 0) throw { status: 409, message: `No se puede eliminar: la categoría tiene ${enUso} producto(s) asociado(s)` };
+  return prisma.categoria.update({ where: { id_categoria: id }, data: { estado: 0 } });
 };
 
 const cambiarEstado = async (id, estado) => {

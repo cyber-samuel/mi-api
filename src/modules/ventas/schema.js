@@ -19,7 +19,10 @@ const crearVentaSchema = z.object({
 });
 
 const estadoVentaSchema = z.object({
-  id_estado: z.number().int().positive(),
+  id_estado:     z.number().int().positive().optional(),
+  nombre_estado: z.string().optional(),
+}).refine((d) => d.id_estado !== undefined || d.nombre_estado !== undefined, {
+  message: 'Debe proporcionar id_estado o nombre_estado',
 });
 
 const anularVentaSchema = z.object({

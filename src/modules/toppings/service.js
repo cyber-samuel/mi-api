@@ -11,7 +11,12 @@ const obtener = async (id) => {
 
 const crear        = (datos) => prisma.topping.create({ data: { ...datos, estado: 1 } });
 const actualizar   = async (id, datos) => { await obtener(id); return prisma.topping.update({ where: { id_topping: id }, data: datos }); };
-const eliminar     = async (id) => { await obtener(id); return prisma.topping.delete({ where: { id_topping: id } }); };
+const eliminar     = async (id) => {
+  await obtener(id);
+  const enUso = await prisma.detalleTopping.count({ where: { id_topping: id } });
+  if (enUso > 0) throw { status: 409, message: 'Este topping está usado en ventas y no se puede eliminar' };
+  return prisma.topping.update({ where: { id_topping: id }, data: { estado: 0 } });
+};
 const cambiarEstado = async (id, estado) => { await obtener(id); return prisma.topping.update({ where: { id_topping: id }, data: { estado } }); };
 
 module.exports = { listar, listarActivos, obtener, crear, actualizar, eliminar, cambiarEstado };

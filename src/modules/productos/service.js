@@ -32,7 +32,9 @@ const actualizar = async (id, datos) => {
 
 const eliminar = async (id) => {
   await obtener(id);
-  return prisma.producto.delete({ where: { id_producto: id } });
+  const enUso = await prisma.detalleVenta.count({ where: { id_producto: id } });
+  if (enUso > 0) throw { status: 409, message: 'Este producto está en ventas registradas y no se puede eliminar' };
+  return prisma.producto.update({ where: { id_producto: id }, data: { estado: 0 }, include: inc });
 };
 
 const cambiarEstado = async (id, estado) => {
