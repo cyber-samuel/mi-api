@@ -13,13 +13,25 @@ const includeDetalle = {
   },
 };
 
-const listar = async (nombreEstado) => {
+const listar = async (nombreEstado, fecha) => {
+  const where = {};
+
   if (nombreEstado) {
-    const estado = await prisma.estado.findFirst({ where: { nombre_estado: nombreEstado } });
+    const estado = await prisma.estado.findFirst({
+      where: { nombre_estado: { equals: nombreEstado, mode: 'insensitive' } },
+    });
     if (!estado) return [];
-    return prisma.venta.findMany({ where: { id_estado: estado.id_estado }, include: includeDetalle, orderBy: { fecha: 'desc' } });
+    where.id_estado = estado.id_estado;
   }
-  return prisma.venta.findMany({ include: includeDetalle, orderBy: { fecha: 'desc' } });
+
+  if (fecha) {
+    // Filtrar por día completo en UTC
+    const inicio = new Date(fecha + 'T00:00:00.000Z');
+    const fin    = new Date(fecha + 'T23:59:59.999Z');
+    where.fecha  = { gte: inicio, lte: fin };
+  }
+
+  return prisma.venta.findMany({ where, include: includeDetalle, orderBy: { fecha: 'desc' } });
 };
 
 const filtrar = (estadoId) => prisma.venta.findMany({
@@ -154,20 +166,26 @@ const misVentas = async (id_usuario) => {
   });
 };
 
-// Cliente crea su propio pedido
+// Cliente crea su propio pedido (auto-crea perfil de cliente si no existe)
 const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_domicilio = 3000, observaciones, items }) => {
-  const cliente = await prisma.cliente.findUnique({ where: { id_usuario } });
-  if (!cliente) throw { status: 404, message: 'Perfil de cliente no encontrado. Regístrate como cliente.' };
+  let cliente = await prisma.cliente.findUnique({ where: { id_usuario } });
+  if (!cliente) {
+    // Auto-crear perfil de cliente para cualquier usuario autenticado
+    cliente = await prisma.cliente.create({ data: { id_usuario } });
+  }
 
   let direccionId = id_direccion;
   if (!direccionId && nueva_direccion) {
     const dir = await prisma.direccion.create({
       data: {
-        id_cliente:     cliente.id_cliente,
+        id_cliente:      cliente.id_cliente,
         direccion_linea: nueva_direccion.direccion_linea,
-        barrio:          nueva_direccion.barrio    || null,
-        ciudad:          nueva_direccion.ciudad    || null,
-        referencia:      nueva_direccion.referencia || null,
+        barrio:          nueva_direccion.barrio       || null,
+        ciudad:          nueva_direccion.ciudad       || null,
+        departamento:    nueva_direccion.departamento || null,
+        referencia:      nueva_direccion.referencia   || null,
+        lat:             nueva_direccion.lat          || null,
+        lng:             nueva_direccion.lng          || null,
       },
     });
     direccionId = dir.id_direccion;

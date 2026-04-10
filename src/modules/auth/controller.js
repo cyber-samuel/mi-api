@@ -71,9 +71,9 @@ const crearMiDireccion = async (req, res, next) => {
     const prisma = require('../../config/prisma');
     const cliente = await prisma.cliente.findUnique({ where: { id_usuario: req.user.id_usuario } });
     if (!cliente) throw { status: 404, message: 'Perfil de cliente no encontrado' };
-    const { direccion_linea, barrio, ciudad, referencia } = req.body;
+    const { direccion_linea, barrio, ciudad, departamento, referencia, lat, lng } = req.body;
     const dir = await prisma.direccion.create({
-      data: { id_cliente: cliente.id_cliente, direccion_linea, barrio, ciudad, referencia },
+      data: { id_cliente: cliente.id_cliente, direccion_linea, barrio, ciudad, departamento: departamento || null, referencia: referencia || null, lat: lat || null, lng: lng || null },
     });
     success(res, dir, 'Dirección creada', 201);
   } catch (err) { next(err); }

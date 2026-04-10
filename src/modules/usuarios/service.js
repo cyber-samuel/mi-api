@@ -34,7 +34,14 @@ const actualizar = async (id, datos) => {
 
 const eliminar = async (id) => {
   await obtener(id);
-  return prisma.usuario.delete({ where: { id_usuario: id } });
+  // Verificar ventas via cliente
+  const cliente = await prisma.cliente.findUnique({ where: { id_usuario: id } });
+  if (cliente) {
+    const ventasCount = await prisma.venta.count({ where: { id_cliente: cliente.id_cliente } });
+    if (ventasCount > 0) throw { status: 409, message: `No se puede eliminar: el usuario tiene ${ventasCount} venta(s) registrada(s)` };
+  }
+  // Soft-delete: marcar como inactivo
+  return prisma.usuario.update({ where: { id_usuario: id }, data: { estado: 0 }, select });
 };
 
 const activarDesactivar = async (id) => {
