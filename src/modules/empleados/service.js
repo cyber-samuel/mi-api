@@ -42,10 +42,13 @@ const actualizar = async (id, datos) => {
 };
 
 const eliminar = async (id) => {
-  await obtener(id);
+  const emp = await obtener(id);
   const domCount = await prisma.ventaDomiciliario.count({ where: { id_empleado: id } });
   if (domCount > 0) throw { status: 409, message: `No se puede eliminar: el empleado tiene ${domCount} domicilio(s) asignado(s)` };
-  return prisma.empleado.update({ where: { id_empleado: id }, data: { estado: 0 }, include: incUsuario });
+  return prisma.$transaction(async (tx) => {
+    await tx.usuario.update({ where: { id_usuario: emp.id_usuario }, data: { estado: 0 } });
+    return tx.empleado.update({ where: { id_empleado: id }, data: { estado: 0 }, include: incUsuario });
+  });
 };
 
 const cambiarEstado = async (id, estado) => {
