@@ -98,7 +98,13 @@ const getPerfil = async (id_usuario) => {
       cliente: true, empleado: true },
   });
   if (!u) throw { status: 404, message: 'Usuario no encontrado' };
-  return u;
+  return {
+    ...u,
+    telefono:  u.cliente?.telefono || null,
+    ciudad:    u.cliente?.ciudad   || null,
+    barrio:    u.cliente?.barrio   || null,
+    id_cliente: u.cliente?.id_cliente || null,
+  };
 };
 
 // ── Editar perfil ───────────────────────────────────────
