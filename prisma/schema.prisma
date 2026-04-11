@@ -72,6 +72,7 @@ model Cliente {
   barrio     String? @db.VarChar(100)
   ciudad     String? @db.VarChar(100)
   telefono   String? @db.VarChar(20)
+  estado     Int     @default(1) @db.SmallInt
 
   usuario     Usuario     @relation(fields: [id_usuario], references: [id_usuario])
   ventas      Venta[]

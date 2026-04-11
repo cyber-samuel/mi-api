@@ -46,8 +46,8 @@ const eliminar = async (id) => {
   }
   // Soft-delete en cascada: usuario + empleado vinculado + cliente vinculado
   return prisma.$transaction(async (tx) => {
-    await tx.empleado.updateMany({ where: { id_usuario: id }, data: { estado: 0 } });
-    await tx.cliente.updateMany({ where: { id_usuario: id }, data: { estado: 0 } });
+    try { await tx.empleado.updateMany({ where: { id_usuario: id }, data: { estado: 0 } }); } catch (_) {}
+    try { await tx.cliente.updateMany({ where: { id_usuario: id }, data: { estado: 0 } }); } catch (_) {}
     return tx.usuario.update({ where: { id_usuario: id }, data: { estado: 0 }, select });
   });
 };
