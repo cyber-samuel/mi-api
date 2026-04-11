@@ -25,9 +25,9 @@ const listar = async (nombreEstado, fecha) => {
   }
 
   if (fecha) {
-    // Filtrar por día completo en UTC
-    const inicio = new Date(fecha + 'T00:00:00.000Z');
-    const fin    = new Date(fecha + 'T23:59:59.999Z');
+    // Filtrar por día completo en hora Colombia (UTC-5): medianoche Colombia = 05:00 UTC
+    const inicio = new Date(fecha + 'T05:00:00.000Z');
+    const fin    = new Date(inicio.getTime() + 24 * 60 * 60 * 1000 - 1);
     where.fecha  = { gte: inicio, lte: fin };
   }
 

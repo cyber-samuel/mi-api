@@ -64,17 +64,17 @@ const productosMasVendidos = async () => {
   }));
 };
 
-const totalDia = async () => {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const manana = new Date(hoy);
-  manana.setDate(manana.getDate() + 1);
+const totalDia = async (fecha) => {
+  // Usa Colombia (UTC-5): medianoche Colombia = 05:00 UTC
+  const fechaCO = fecha || new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const inicio  = new Date(fechaCO + 'T05:00:00.000Z');
+  const fin     = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
 
   const estadoAnulado = await prisma.estado.findFirst({ where: { nombre_estado: 'anulado' } });
 
   const result = await prisma.venta.aggregate({
     where: {
-      fecha:     { gte: hoy, lt: manana },
+      fecha:     { gte: inicio, lt: fin },
       id_estado: { not: estadoAnulado?.id_estado },
     },
     _sum:   { total: true },
@@ -82,7 +82,7 @@ const totalDia = async () => {
   });
 
   return {
-    fecha:        hoy.toISOString().split('T')[0],
+    fecha:        fechaCO,
     total_ventas: result._count.id_venta,
     monto_total:  result._sum.total || 0,
   };
@@ -105,9 +105,16 @@ const recaudoPedidos = async () => {
   };
 };
 
-const pedidosRecientes = async (limite = 10) => {
+const pedidosRecientes = async (limite = 10, fecha) => {
+  const where = {};
+  if (fecha) {
+    const inicio = new Date(fecha + 'T05:00:00.000Z');
+    const fin    = new Date(inicio.getTime() + 24 * 60 * 60 * 1000 - 1);
+    where.fecha  = { gte: inicio, lte: fin };
+  }
   return prisma.venta.findMany({
     take:    Number(limite),
+    where,
     orderBy: { fecha: 'desc' },
     include: {
       estado:  true,
