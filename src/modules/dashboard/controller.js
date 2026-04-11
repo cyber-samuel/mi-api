@@ -2,7 +2,7 @@ const service = require('./service');
 const { success } = require('../../utils/response');
 
 const ventasPorMes      = async (req, res, next) => { try { success(res, await service.ventasPorMes());      } catch (e) { next(e); } };
-const ventasPorDia      = async (req, res, next) => { try { success(res, await service.ventasPorDia());      } catch (e) { next(e); } };
+const ventasPorDia      = async (req, res, next) => { try { success(res, await service.ventasPorDia(req.query.fecha));      } catch (e) { next(e); } };
 const ventasPorSemana   = async (req, res, next) => { try { success(res, await service.ventasPorSemana());   } catch (e) { next(e); } };
 const productosMasVend  = async (req, res, next) => { try { success(res, await service.productosMasVendidos()); } catch (e) { next(e); } };
 const totalDia          = async (req, res, next) => { try { success(res, await service.totalDia(req.query.fecha));          } catch (e) { next(e); } };

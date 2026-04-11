@@ -15,18 +15,28 @@ const ventasPorMes = async () => {
   `;
 };
 
-const ventasPorDia = async () => {
-  return prisma.$queryRaw`
-    SELECT
-      DATE(fecha)            AS dia,
-      COUNT(*)::int          AS total_ventas,
-      COALESCE(SUM(total),0) AS monto_total
-    FROM ventas
-    WHERE fecha >= NOW() - INTERVAL '30 days'
-      AND id_estado != (SELECT id_estado FROM estados WHERE nombre_estado = 'anulado' LIMIT 1)
-    GROUP BY dia
-    ORDER BY dia DESC
-  `;
+const ventasPorDia = async (fecha) => {
+  const fechaCO = fecha || new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const inicio  = new Date(fechaCO + 'T05:00:00.000Z');
+  const fin     = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
+
+  const estadoAnulado = await prisma.estado.findFirst({ where: { nombre_estado: 'anulado' } });
+  const ventas = await prisma.venta.findMany({
+    where: { fecha: { gte: inicio, lt: fin }, id_estado: { not: estadoAnulado?.id_estado } },
+    select: { fecha: true, total: true },
+  });
+
+  const horas = {};
+  ventas.forEach((v) => {
+    const hora  = (new Date(v.fecha).getUTCHours() - 5 + 24) % 24;
+    const label = hora + ':00';
+    horas[label] = (horas[label] || 0) + Number(v.total);
+  });
+
+  if (Object.keys(horas).length === 0) return [{ label: '—', total: 0 }];
+  return Object.entries(horas)
+    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+    .map(([label, total]) => ({ label, total }));
 };
 
 const ventasPorSemana = async () => {

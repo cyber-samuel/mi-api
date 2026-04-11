@@ -102,12 +102,26 @@ const getPerfil = async (id_usuario) => {
 };
 
 // ── Editar perfil ───────────────────────────────────────
-const editarPerfil = async (id_usuario, { nombre, email }) => {
-  return prisma.usuario.update({
+const editarPerfil = async (id_usuario, { nombre, email, telefono }) => {
+  const data = {};
+  if (nombre !== undefined) data.nombre = nombre;
+  if (email  !== undefined) data.email  = email;
+
+  const usuario = await prisma.usuario.update({
     where: { id_usuario },
-    data: { nombre, email },
+    data,
     select: { id_usuario: true, nombre: true, email: true, estado: true, fecha_registro: true, rol: true },
   });
+
+  if (telefono !== undefined) {
+    await prisma.cliente.upsert({
+      where:  { id_usuario },
+      update: { telefono },
+      create: { id_usuario, telefono },
+    }).catch(() => {});
+  }
+
+  return usuario;
 };
 
 // ── Desactivar cuenta ───────────────────────────────────

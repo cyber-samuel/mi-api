@@ -92,7 +92,7 @@ const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observacio
   });
 };
 
-const cambiarEstado = async (id, { id_estado, nombre_estado }) => {
+const cambiarEstado = async (id, { id_estado, nombre_estado, metodo_pago }) => {
   await obtener(id);
   let estadoId = id_estado;
   if (!estadoId && nombre_estado) {
@@ -100,7 +100,9 @@ const cambiarEstado = async (id, { id_estado, nombre_estado }) => {
     if (!estado) throw { status: 400, message: `Estado '${nombre_estado}' no existe` };
     estadoId = estado.id_estado;
   }
-  return prisma.venta.update({ where: { id_venta: id }, data: { id_estado: estadoId }, include: includeDetalle });
+  const updateData = { id_estado: estadoId };
+  if (metodo_pago) updateData.metodo_pago = metodo_pago;
+  return prisma.venta.update({ where: { id_venta: id }, data: updateData, include: includeDetalle });
 };
 
 const anular = async (id, motivo_anulacion) => {
