@@ -88,10 +88,16 @@ const totalDia = async (fecha) => {
   };
 };
 
-const totalidadClientes = async () => {
-  const total    = await prisma.cliente.count();
-  const activos  = await prisma.usuario.count({ where: { id_rol: 4, estado: 1 } });
-  return { total_clientes: total, clientes_activos: activos };
+const totalidadClientes = async (fecha) => {
+  const fechaCO = fecha || new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const inicio  = new Date(fechaCO + 'T05:00:00.000Z');
+  const fin     = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
+
+  const [total, nuevosHoy] = await Promise.all([
+    prisma.usuario.count({ where: { estado: 1 } }),
+    prisma.usuario.count({ where: { estado: 1, fecha_registro: { gte: inicio, lt: fin } } }),
+  ]);
+  return { total, nuevosHoy };
 };
 
 const recaudoPedidos = async () => {

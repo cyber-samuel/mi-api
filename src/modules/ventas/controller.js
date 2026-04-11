@@ -2,7 +2,7 @@ const service = require('./service');
 const { crearVentaSchema, estadoVentaSchema, anularVentaSchema } = require('./schema');
 const { success } = require('../../utils/response');
 
-const listar       = async (req, res, next) => { try { success(res, await service.listar(req.query.estado, req.query.fecha)); } catch (e) { next(e); } };
+const listar       = async (req, res, next) => { try { success(res, await service.listar({ estado: req.query.estado, fecha: req.query.fecha })); } catch (e) { next(e); } };
 const filtrar      = async (req, res, next) => { try { success(res, await service.filtrar(req.query.estado)); } catch (e) { next(e); } };
 const obtener      = async (req, res, next) => { try { success(res, await service.obtener(Number(req.params.id))); } catch (e) { next(e); } };
 const crear        = async (req, res, next) => { try { success(res, await service.crear(crearVentaSchema.parse(req.body)), 'Venta creada', 201); } catch (e) { next(e); } };

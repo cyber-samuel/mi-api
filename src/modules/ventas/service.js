@@ -13,15 +13,15 @@ const includeDetalle = {
   },
 };
 
-const listar = async (nombreEstado, fecha) => {
+const listar = async ({ estado, fecha } = {}) => {
   const where = {};
 
-  if (nombreEstado) {
-    const estado = await prisma.estado.findFirst({
-      where: { nombre_estado: { equals: nombreEstado, mode: 'insensitive' } },
+  if (estado) {
+    const estadoObj = await prisma.estado.findFirst({
+      where: { nombre_estado: { equals: estado, mode: 'insensitive' } },
     });
-    if (!estado) return [];
-    where.id_estado = estado.id_estado;
+    if (!estadoObj) return [];
+    where.id_estado = estadoObj.id_estado;
   }
 
   if (fecha) {

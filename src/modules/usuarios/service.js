@@ -43,8 +43,12 @@ const eliminar = async (id) => {
     const ventasCount = await prisma.venta.count({ where: { id_cliente: cliente.id_cliente } });
     if (ventasCount > 0) throw { status: 409, message: `No se puede eliminar: el usuario tiene ${ventasCount} venta(s) registrada(s)` };
   }
-  // Soft-delete: marcar como inactivo
-  return prisma.usuario.update({ where: { id_usuario: id }, data: { estado: 0 }, select });
+  // Soft-delete en cascada: usuario + empleado vinculado + cliente vinculado
+  return prisma.$transaction(async (tx) => {
+    await tx.empleado.updateMany({ where: { id_usuario: id }, data: { estado: 0 } });
+    await tx.cliente.updateMany({ where: { id_usuario: id }, data: { estado: 0 } });
+    return tx.usuario.update({ where: { id_usuario: id }, data: { estado: 0 }, select });
+  });
 };
 
 const activarDesactivar = async (id) => {
