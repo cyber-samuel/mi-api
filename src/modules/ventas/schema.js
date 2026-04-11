@@ -19,8 +19,11 @@ const crearVentaSchema = z.object({
 });
 
 const estadoVentaSchema = z.object({
-  id_estado:     z.number().int().positive().optional(),
-  nombre_estado: z.string().optional(),
+  id_estado:           z.number().int().positive().optional(),
+  nombre_estado:       z.string().optional(),
+  metodo_pago:         z.string().optional(),
+  monto_efectivo:      z.number().min(0).optional(),
+  monto_transferencia: z.number().min(0).optional(),
 }).refine((d) => d.id_estado !== undefined || d.nombre_estado !== undefined, {
   message: 'Debe proporcionar id_estado o nombre_estado',
 });

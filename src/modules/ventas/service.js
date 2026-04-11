@@ -93,17 +93,79 @@ const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observacio
   });
 };
 
-const cambiarEstado = async (id, { id_estado, nombre_estado, metodo_pago }) => {
+const cambiarEstado = async (id, datos, id_usuario) => {
+  const { id_estado, nombre_estado, metodo_pago, monto_efectivo, monto_transferencia } = datos;
   await obtener(id);
-  let estadoId = id_estado;
+  let estadoId    = id_estado;
+  let estadoNombre = nombre_estado || null;
   if (!estadoId && nombre_estado) {
     const estado = await prisma.estado.findFirst({ where: { nombre_estado } });
     if (!estado) throw { status: 400, message: `Estado '${nombre_estado}' no existe` };
-    estadoId = estado.id_estado;
+    estadoId     = estado.id_estado;
+    estadoNombre = estado.nombre_estado;
   }
   const updateData = { id_estado: estadoId };
   if (metodo_pago) updateData.metodo_pago = metodo_pago;
-  return prisma.venta.update({ where: { id_venta: id }, data: updateData, include: includeDetalle });
+  const ventaActualizada = await prisma.venta.update({
+    where: { id_venta: id }, data: updateData, include: includeDetalle,
+  });
+
+  // Al marcar como entregado con método de pago → crear registro en pagos/detalle_pagos
+  if (estadoNombre === 'entregado' && metodo_pago) {
+    try {
+      const empleado = id_usuario
+        ? await prisma.empleado.findUnique({ where: { id_usuario: Number(id_usuario) } })
+        : null;
+      if (empleado) {
+        const venta = await prisma.venta.findUnique({ where: { id_venta: id } });
+
+        // Crear o actualizar registro de pago
+        let pago = await prisma.pago.findFirst({ where: { id_venta: id } });
+        if (pago) {
+          pago = await prisma.pago.update({
+            where: { id_pago: pago.id_pago },
+            data: { total_pagado: venta.total, fecha_pago: new Date(), id_empleado: empleado.id_empleado },
+          });
+        } else {
+          pago = await prisma.pago.create({
+            data: { id_venta: id, id_empleado: empleado.id_empleado, total_pagado: venta.total, fecha_pago: new Date() },
+          });
+        }
+
+        // Limpiar detalles anteriores y recrear
+        await prisma.detallePago.deleteMany({ where: { id_pago: pago.id_pago } });
+
+        const metodos     = await prisma.metodoPago.findMany();
+        const mEfectivo   = metodos.find((m) => m.nombre.toLowerCase().includes('efectivo'));
+        const mTransf     = metodos.find((m) => m.nombre.toLowerCase().includes('transferencia'));
+
+        if (metodo_pago === 'efectivo' && mEfectivo) {
+          await prisma.detallePago.create({
+            data: { id_pago: pago.id_pago, id_metodo_pago: mEfectivo.id_metodo_pago, monto: venta.total },
+          });
+        } else if (metodo_pago === 'transferencia' && mTransf) {
+          await prisma.detallePago.create({
+            data: { id_pago: pago.id_pago, id_metodo_pago: mTransf.id_metodo_pago, monto: venta.total },
+          });
+        } else if (metodo_pago === 'mixto') {
+          if (mEfectivo && Number(monto_efectivo) > 0) {
+            await prisma.detallePago.create({
+              data: { id_pago: pago.id_pago, id_metodo_pago: mEfectivo.id_metodo_pago, monto: Number(monto_efectivo) },
+            });
+          }
+          if (mTransf && Number(monto_transferencia) > 0) {
+            await prisma.detallePago.create({
+              data: { id_pago: pago.id_pago, id_metodo_pago: mTransf.id_metodo_pago, monto: Number(monto_transferencia) },
+            });
+          }
+        }
+      }
+    } catch (pagoErr) {
+      console.error('Error creando pago detallado:', pagoErr.message);
+    }
+  }
+
+  return ventaActualizada;
 };
 
 const anular = async (id, motivo_anulacion) => {
