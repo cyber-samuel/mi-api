@@ -7,7 +7,7 @@ const crearEmpleadoSchema = z.object({
   nombre:        z.string().min(2),
   email:         z.string().email(),
   contrasena:    z.string().min(6),
-  id_rol:        z.number().int().positive(),
+  id_rol:        z.number().int().positive().default(2),
   cargo:         z.string().max(50),
   fecha_ingreso: z.string(),
 });

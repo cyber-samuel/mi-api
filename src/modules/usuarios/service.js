@@ -6,7 +6,10 @@ const select = {
   email: true, estado: true, fecha_registro: true, rol: true,
 };
 
-const listar = () => prisma.usuario.findMany({ select });
+const listar = () => prisma.usuario.findMany({
+  include: { rol: true, cliente: true, empleado: true },
+  orderBy: { fecha_registro: 'desc' },
+});
 
 const buscar = (q) => prisma.usuario.findMany({
   where: { OR: [{ nombre: { contains: q, mode: 'insensitive' } }, { email: { contains: q, mode: 'insensitive' } }] },

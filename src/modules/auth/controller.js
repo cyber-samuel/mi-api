@@ -59,8 +59,8 @@ const desactivarCuenta = async (req, res, next) => {
 const misDirecciones = async (req, res, next) => {
   try {
     const prisma = require('../../config/prisma');
-    const cliente = await prisma.cliente.findUnique({ where: { id_usuario: req.user.id_usuario } });
-    if (!cliente) { success(res, []); return; }
+    let cliente = await prisma.cliente.findUnique({ where: { id_usuario: req.user.id_usuario } });
+    if (!cliente) cliente = await prisma.cliente.create({ data: { id_usuario: req.user.id_usuario } });
     const dirs = await prisma.direccion.findMany({ where: { id_cliente: cliente.id_cliente, estado: 1 } });
     success(res, dirs);
   } catch (err) { next(err); }
@@ -69,11 +69,12 @@ const misDirecciones = async (req, res, next) => {
 const crearMiDireccion = async (req, res, next) => {
   try {
     const prisma = require('../../config/prisma');
-    const cliente = await prisma.cliente.findUnique({ where: { id_usuario: req.user.id_usuario } });
-    if (!cliente) throw { status: 404, message: 'Perfil de cliente no encontrado' };
+    let cliente = await prisma.cliente.findUnique({ where: { id_usuario: req.user.id_usuario } });
+    if (!cliente) cliente = await prisma.cliente.create({ data: { id_usuario: req.user.id_usuario } });
     const { direccion_linea, barrio, ciudad, departamento, referencia, lat, lng } = req.body;
+    if (!direccion_linea?.trim()) throw { status: 400, message: 'La dirección es requerida' };
     const dir = await prisma.direccion.create({
-      data: { id_cliente: cliente.id_cliente, direccion_linea, barrio, ciudad, departamento: departamento || null, referencia: referencia || null, lat: lat || null, lng: lng || null },
+      data: { id_cliente: cliente.id_cliente, direccion_linea, barrio, ciudad, departamento: departamento || null, referencia: referencia || null, lat: lat || null, lng: lng || null, estado: 1 },
     });
     success(res, dir, 'Dirección creada', 201);
   } catch (err) { next(err); }
