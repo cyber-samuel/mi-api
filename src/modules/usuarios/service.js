@@ -7,6 +7,7 @@ const select = {
 };
 
 const listar = () => prisma.usuario.findMany({
+  where: { estado: 1 },
   include: { rol: true, cliente: true, empleado: true },
   orderBy: { fecha_registro: 'desc' },
 });
