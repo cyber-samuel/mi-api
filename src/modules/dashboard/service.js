@@ -27,14 +27,16 @@ const ventasPorDia = async (fecha) => {
   });
 
   const horas = {};
+  for (let h = 0; h < 24; h++) horas[`${h}:00`] = 0;
   ventas.forEach((v) => {
     const hora  = (new Date(v.fecha).getUTCHours() - 5 + 24) % 24;
     const label = hora + ':00';
-    horas[label] = (horas[label] || 0) + Number(v.total);
+    horas[label] = horas[label] + Number(v.total);
   });
 
-  if (Object.keys(horas).length === 0) return [{ label: '—', total: 0 }];
-  return Object.entries(horas)
+  const nonZero = Object.entries(horas).filter(([, t]) => t > 0);
+  if (nonZero.length === 0) return [{ label: '—', total: 0 }];
+  return nonZero
     .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
     .map(([label, total]) => ({ label, total }));
 };

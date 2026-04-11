@@ -4,6 +4,7 @@ const includeDetalle = {
   cliente:  { include: { usuario: { select: { nombre: true, email: true } } } },
   estado:   true,
   direccion: true,
+  pagos:    { include: { detallePagos: { include: { metodoPago: true } } } },
   detalleVentas: {
     include: {
       producto: true,
