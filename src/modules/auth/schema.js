@@ -22,8 +22,9 @@ const cambiarContrasenaSchema = z.object({
 });
 
 const editarPerfilSchema = z.object({
-  nombre: z.string().min(2).optional(),
-  email:  z.string().email().optional(),
+  nombre:   z.string().min(2).optional(),
+  email:    z.string().email().optional(),
+  telefono: z.string().min(7).max(20).optional(),
 });
 
 module.exports = { loginSchema, registerSchema, recuperarSchema, cambiarContrasenaSchema, editarPerfilSchema };
