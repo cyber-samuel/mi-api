@@ -47,7 +47,7 @@ const obtener = async (id) => {
   return v;
 };
 
-const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observaciones, items }) => {
+const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observaciones, items, metodo_pago }) => {
   const productoIds = items.map((i) => i.id_producto);
   const productos   = await prisma.producto.findMany({ where: { id_producto: { in: productoIds } } });
   const precioP     = Object.fromEntries(productos.map((p) => [p.id_producto, Number(p.precio)]));
@@ -76,6 +76,7 @@ const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observacio
     data: {
       id_cliente, id_estado: estadoPendiente?.id_estado || 1,
       id_direccion, costo_domicilio, observaciones,
+      metodo_pago: metodo_pago || null,
       subtotal, total: subtotal + Number(costo_domicilio),
       detalleVentas: {
         create: itemsCalc.map((item) => ({
@@ -232,7 +233,7 @@ const misVentas = async (id_usuario) => {
 };
 
 // Cliente crea su propio pedido (auto-crea perfil de cliente si no existe)
-const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_domicilio = 3000, observaciones, items }) => {
+const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_domicilio = 3000, observaciones, items, metodo_pago }) => {
   let cliente = await prisma.cliente.findUnique({ where: { id_usuario } });
   if (!cliente) {
     // Auto-crear perfil de cliente para cualquier usuario autenticado
@@ -256,7 +257,7 @@ const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_
     direccionId = dir.id_direccion;
   }
 
-  return crear({ id_cliente: cliente.id_cliente, id_direccion: direccionId, costo_domicilio, observaciones, items });
+  return crear({ id_cliente: cliente.id_cliente, id_direccion: direccionId, costo_domicilio, observaciones, items, metodo_pago });
 };
 
 module.exports = { listar, filtrar, obtener, crear, cambiarEstado, anular, comprobante, whatsapp, totalVenta, misVentas, crearMiPedido };
