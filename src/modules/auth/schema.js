@@ -27,4 +27,15 @@ const editarPerfilSchema = z.object({
   telefono: z.string().min(7).max(20).optional(),
 });
 
-module.exports = { loginSchema, registerSchema, recuperarSchema, cambiarContrasenaSchema, editarPerfilSchema };
+const solicitarResetSchema = z.object({
+  email: z.string().email('Email inválido'),
+});
+
+const verificarResetSchema = z.object({
+  email:           z.string().email('Email inválido'),
+  codigo:          z.string().length(6, 'El código debe tener 6 dígitos'),
+  nueva_password:  z.string().min(6, 'Mínimo 6 caracteres'),
+});
+
+module.exports = { loginSchema, registerSchema, recuperarSchema, cambiarContrasenaSchema, editarPerfilSchema,
+                   solicitarResetSchema, verificarResetSchema };

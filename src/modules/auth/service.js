@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const prisma = require('../../config/prisma');
+const { enviarCodigoRecuperacion } = require('../../utils/mailer');
 
 // ── Tokens en memoria (en prod usar Redis) ─────────────
 const resetTokens    = new Map(); // email → { token, expiry }
@@ -73,6 +74,38 @@ const recuperarContrasena = async ({ email }) => {
   return { token, mensaje: 'Token generado. En producción se enviaría por email.' };
 };
 
+// ── Solicitar reset con código de 6 dígitos ─────────────
+const solicitarReset = async ({ email }) => {
+  const usuario = await prisma.usuario.findUnique({ where: { email } });
+  // Siempre respondemos igual para no revelar si el email existe
+  if (!usuario) return { mensaje: 'Si el email existe, recibirás un código en breve.' };
+
+  const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+  resetTokens.set(email, { token: codigo, expiry: Date.now() + 15 * 60_000 }); // 15 min
+
+  try {
+    await enviarCodigoRecuperacion(email, codigo);
+  } catch (err) {
+    console.error('Error al enviar email de recuperación:', err?.message || err);
+    // No bloqueamos la respuesta aunque falle el email
+  }
+
+  return { mensaje: 'Si el email existe, recibirás un código en breve.' };
+};
+
+// ── Verificar código y cambiar contraseña ───────────────
+const verificarReset = async ({ email, codigo, nueva_password }) => {
+  const entry = resetTokens.get(email);
+  if (!entry || entry.token !== codigo || entry.expiry <= Date.now()) {
+    throw { status: 400, message: 'Código inválido o expirado' };
+  }
+
+  const hash = await bcrypt.hash(nueva_password, 10);
+  await prisma.usuario.update({ where: { email }, data: { contrasena: hash } });
+  resetTokens.delete(email);
+  return { mensaje: 'Contraseña actualizada correctamente' };
+};
+
 // ── Cambiar contraseña (con token de recuperación) ──────
 const cambiarContrasena = async ({ token, nueva_contrasena }) => {
   let emailEncontrado = null;
@@ -140,4 +173,5 @@ const desactivarCuenta = async (id_usuario) => {
 };
 
 module.exports = { login, register, logout, recuperarContrasena, cambiarContrasena,
+  solicitarReset, verificarReset,
   getPerfil, editarPerfil, desactivarCuenta, isBlacklisted };

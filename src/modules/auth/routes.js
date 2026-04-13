@@ -11,6 +11,10 @@ router.post('/recuperar',           controller.recuperarContrasena);
 router.post('/recuperar-contrasena', controller.recuperarContrasena);
 router.patch('/cambiar-contrasena',  controller.cambiarContrasena);
 
+// Recuperación con código de 6 dígitos (email vía Resend)
+router.post('/solicitar-reset',  controller.solicitarReset);
+router.post('/verificar-reset',  controller.verificarReset);
+
 // Protegidos (solo requieren token válido, no permiso específico)
 router.post('/logout',                  verifyToken, controller.logout);
 router.get('/perfil',                   verifyToken, controller.getPerfil);

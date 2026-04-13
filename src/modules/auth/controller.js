@@ -1,5 +1,6 @@
 const authService = require('./service');
-const { loginSchema, registerSchema, recuperarSchema, cambiarContrasenaSchema, editarPerfilSchema } = require('./schema');
+const { loginSchema, registerSchema, recuperarSchema, cambiarContrasenaSchema, editarPerfilSchema,
+        solicitarResetSchema, verificarResetSchema } = require('./schema');
 const { success } = require('../../utils/response');
 
 const login = async (req, res, next) => {
@@ -108,5 +109,20 @@ const eliminarMiDireccion = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const solicitarReset = async (req, res, next) => {
+  try {
+    const { email } = solicitarResetSchema.parse(req.body);
+    success(res, await authService.solicitarReset({ email }), 'Código enviado');
+  } catch (err) { next(err); }
+};
+
+const verificarReset = async (req, res, next) => {
+  try {
+    const datos = verificarResetSchema.parse(req.body);
+    success(res, await authService.verificarReset(datos), 'Contraseña actualizada');
+  } catch (err) { next(err); }
+};
+
 module.exports = { login, register, logout, recuperarContrasena, cambiarContrasena,
+  solicitarReset, verificarReset,
   getPerfil, editarPerfil, desactivarCuenta, misDirecciones, crearMiDireccion, eliminarMiDireccion, cambiarContrasenaAuth };
