@@ -21,7 +21,7 @@ function getResend() {
 const enviarCodigoRecuperacion = async (to, codigo) => {
   const from = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from,
     to,
     subject: 'Tu código de recuperación — ChocoFreseo',
