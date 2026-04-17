@@ -215,6 +215,7 @@ model Venta {
   total            Decimal  @db.Decimal(10, 2)
   observaciones    String?  @db.Text
   metodo_pago      String?  @db.VarChar(20)
+  comprobante_url  String?  @db.Text
 
   cliente   Cliente    @relation(fields: [id_cliente], references: [id_cliente])
   estado    Estado     @relation(fields: [id_estado], references: [id_estado])
@@ -304,7 +305,7 @@ model DetallePago {
   id_pago         Int
   id_metodo_pago  Int
   monto           Decimal @db.Decimal(10, 2)
-  comprobante     String? @db.VarChar(50)
+  comprobante     String? @db.Text
   referencia      String? @db.VarChar(100)
 
   pago       Pago       @relation(fields: [id_pago], references: [id_pago])

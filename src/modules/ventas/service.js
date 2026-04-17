@@ -47,7 +47,7 @@ const obtener = async (id) => {
   return v;
 };
 
-const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observaciones, items, metodo_pago }) => {
+const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observaciones, items, metodo_pago, comprobante_url }) => {
   const productoIds = items.map((i) => i.id_producto);
   const productos   = await prisma.producto.findMany({ where: { id_producto: { in: productoIds } } });
   const precioP     = Object.fromEntries(productos.map((p) => [p.id_producto, Number(p.precio)]));
@@ -77,6 +77,7 @@ const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observacio
       id_cliente, id_estado: estadoPendiente?.id_estado || 1,
       id_direccion, costo_domicilio, observaciones,
       metodo_pago: metodo_pago || null,
+      comprobante_url: comprobante_url || null,
       subtotal, total: subtotal + Number(costo_domicilio),
       detalleVentas: {
         create: itemsCalc.map((item) => ({
@@ -95,7 +96,7 @@ const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observacio
 };
 
 const cambiarEstado = async (id, datos, id_usuario) => {
-  const { id_estado, nombre_estado, metodo_pago, monto_efectivo, monto_transferencia } = datos;
+  const { id_estado, nombre_estado, metodo_pago, monto_efectivo, monto_transferencia, comprobante_url } = datos;
   await obtener(id);
   let estadoId    = id_estado;
   let estadoNombre = nombre_estado || null;
@@ -106,7 +107,8 @@ const cambiarEstado = async (id, datos, id_usuario) => {
     estadoNombre = estado.nombre_estado;
   }
   const updateData = { id_estado: estadoId };
-  if (metodo_pago) updateData.metodo_pago = metodo_pago;
+  if (metodo_pago)      updateData.metodo_pago      = metodo_pago;
+  if (comprobante_url)  updateData.comprobante_url  = comprobante_url;
   const ventaActualizada = await prisma.venta.update({
     where: { id_venta: id }, data: updateData, include: includeDetalle,
   });
@@ -146,7 +148,7 @@ const cambiarEstado = async (id, datos, id_usuario) => {
           });
         } else if (metodo_pago === 'transferencia' && mTransf) {
           await prisma.detallePago.create({
-            data: { id_pago: pago.id_pago, id_metodo_pago: mTransf.id_metodo_pago, monto: venta.total },
+            data: { id_pago: pago.id_pago, id_metodo_pago: mTransf.id_metodo_pago, monto: venta.total, comprobante: comprobante_url || null },
           });
         } else if (metodo_pago === 'mixto') {
           if (mEfectivo && Number(monto_efectivo) > 0) {
@@ -156,7 +158,7 @@ const cambiarEstado = async (id, datos, id_usuario) => {
           }
           if (mTransf && Number(monto_transferencia) > 0) {
             await prisma.detallePago.create({
-              data: { id_pago: pago.id_pago, id_metodo_pago: mTransf.id_metodo_pago, monto: Number(monto_transferencia) },
+              data: { id_pago: pago.id_pago, id_metodo_pago: mTransf.id_metodo_pago, monto: Number(monto_transferencia), comprobante: comprobante_url || null },
             });
           }
         }
@@ -233,7 +235,7 @@ const misVentas = async (id_usuario) => {
 };
 
 // Cliente crea su propio pedido (auto-crea perfil de cliente si no existe)
-const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_domicilio = 3000, observaciones, items, metodo_pago }) => {
+const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_domicilio = 3000, observaciones, items, metodo_pago, comprobante_url }) => {
   let cliente = await prisma.cliente.findUnique({ where: { id_usuario } });
   if (!cliente) {
     // Auto-crear perfil de cliente para cualquier usuario autenticado
@@ -257,7 +259,7 @@ const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_
     direccionId = dir.id_direccion;
   }
 
-  return crear({ id_cliente: cliente.id_cliente, id_direccion: direccionId, costo_domicilio, observaciones, items, metodo_pago });
+  return crear({ id_cliente: cliente.id_cliente, id_direccion: direccionId, costo_domicilio, observaciones, items, metodo_pago, comprobante_url });
 };
 
 module.exports = { listar, filtrar, obtener, crear, cambiarEstado, anular, comprobante, whatsapp, totalVenta, misVentas, crearMiPedido };

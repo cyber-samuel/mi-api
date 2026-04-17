@@ -15,6 +15,8 @@ const crearVentaSchema = z.object({
   id_direccion:    z.number().int().positive().optional(),
   costo_domicilio: z.number().min(0).default(0),
   observaciones:   z.string().optional(),
+  metodo_pago:     z.string().optional(),
+  comprobante_url: z.string().url().optional().or(z.literal('')).nullable(),
   items:           z.array(itemVentaSchema).min(1, 'Debe incluir al menos un producto'),
 });
 
@@ -24,6 +26,7 @@ const estadoVentaSchema = z.object({
   metodo_pago:         z.string().optional(),
   monto_efectivo:      z.number().min(0).optional(),
   monto_transferencia: z.number().min(0).optional(),
+  comprobante_url:     z.string().url().optional().or(z.literal('')).nullable(),
 }).refine((d) => d.id_estado !== undefined || d.nombre_estado !== undefined, {
   message: 'Debe proporcionar id_estado o nombre_estado',
 });
