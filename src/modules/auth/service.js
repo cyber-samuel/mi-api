@@ -127,8 +127,8 @@ const cambiarContrasena = async ({ token, nueva_contrasena }) => {
 const getPerfil = async (id_usuario) => {
   const u = await prisma.usuario.findUnique({
     where: { id_usuario },
-    select: { id_usuario: true, nombre: true, email: true, estado: true, fecha_registro: true, rol: true,
-      cliente: true, empleado: true },
+    select: { id_usuario: true, nombre: true, email: true, estado: true, fecha_registro: true,
+      id_rol: true, rol: true, cliente: true, empleado: true },
   });
   if (!u) throw { status: 404, message: 'Usuario no encontrado' };
   return {
@@ -152,15 +152,20 @@ const editarPerfil = async (id_usuario, { nombre, email, telefono }) => {
     select: { id_usuario: true, nombre: true, email: true, estado: true, fecha_registro: true, rol: true },
   });
 
+  let telefonoActual = null;
   if (telefono !== undefined) {
-    await prisma.cliente.upsert({
+    const cliente = await prisma.cliente.upsert({
       where:  { id_usuario },
       update: { telefono },
       create: { id_usuario, telefono },
-    }).catch(() => {});
+    }).catch(() => null);
+    telefonoActual = cliente?.telefono ?? telefono;
+  } else {
+    const cliente = await prisma.cliente.findUnique({ where: { id_usuario }, select: { telefono: true } }).catch(() => null);
+    telefonoActual = cliente?.telefono ?? null;
   }
 
-  return usuario;
+  return { ...usuario, telefono: telefonoActual };
 };
 
 // ── Desactivar cuenta ───────────────────────────────────
