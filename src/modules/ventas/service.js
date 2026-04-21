@@ -166,6 +166,8 @@ const cambiarEstado = async (id, datos, id_usuario) => {
     } catch (pagoErr) {
       console.error('Error creando pago detallado:', pagoErr.message);
     }
+    // Re-fetch para incluir los pagos recién creados en la respuesta
+    return obtener(id);
   }
 
   return ventaActualizada;
