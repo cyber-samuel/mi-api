@@ -53,8 +53,13 @@ const eliminar = async (id) => {
 };
 
 const activarDesactivar = async (id) => {
-  const u = await obtener(id);
-  return prisma.usuario.update({ where: { id_usuario: id }, data: { estado: u.estado ? 0 : 1 }, select });
+  const u     = await obtener(id);
+  const nuevo = u.estado ? 0 : 1;
+  return prisma.$transaction(async (tx) => {
+    try { await tx.empleado.updateMany({ where: { id_usuario: id }, data: { estado: nuevo } }); } catch (_) {}
+    try { await tx.cliente.updateMany({ where: { id_usuario: id }, data: { estado: nuevo } }); } catch (_) {}
+    return tx.usuario.update({ where: { id_usuario: id }, data: { estado: nuevo }, select });
+  });
 };
 
 const asignarRol = async (id, id_rol) => {

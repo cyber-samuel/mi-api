@@ -47,7 +47,25 @@ const obtener = async (id) => {
   return v;
 };
 
-const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observaciones, items, metodo_pago, comprobante_url }) => {
+const crear = async ({ id_cliente, id_direccion, nueva_direccion, costo_domicilio = 0, observaciones, items, metodo_pago, monto_efectivo, monto_transferencia, comprobante_url }) => {
+  // Si se envía nueva_direccion, crearla antes
+  let direccionId = id_direccion;
+  if (!direccionId && nueva_direccion) {
+    const dir = await prisma.direccion.create({
+      data: {
+        id_cliente:      id_cliente,
+        direccion_linea: nueva_direccion.direccion_linea,
+        barrio:          nueva_direccion.barrio       || null,
+        ciudad:          nueva_direccion.ciudad       || null,
+        departamento:    nueva_direccion.departamento || null,
+        referencia:      nueva_direccion.referencia   || null,
+        lat:             nueva_direccion.lat          || null,
+        lng:             nueva_direccion.lng          || null,
+      },
+    });
+    direccionId = dir.id_direccion;
+  }
+
   const productoIds = items.map((i) => i.id_producto);
   const productos   = await prisma.producto.findMany({ where: { id_producto: { in: productoIds } } });
   const precioP     = Object.fromEntries(productos.map((p) => [p.id_producto, Number(p.precio)]));
@@ -71,14 +89,15 @@ const crear = async ({ id_cliente, id_direccion, costo_domicilio = 0, observacio
   });
 
   const estadoPendiente = await prisma.estado.findFirst({ where: { nombre_estado: 'pendiente' } });
+  const total           = subtotal + Number(costo_domicilio);
 
   return prisma.venta.create({
     data: {
       id_cliente, id_estado: estadoPendiente?.id_estado || 1,
-      id_direccion, costo_domicilio, observaciones,
+      id_direccion: direccionId, costo_domicilio, observaciones,
       metodo_pago: metodo_pago || null,
       comprobante_url: comprobante_url || null,
-      subtotal, total: subtotal + Number(costo_domicilio),
+      subtotal, total,
       detalleVentas: {
         create: itemsCalc.map((item) => ({
           id_producto: item.id_producto, cantidad: item.cantidad,
