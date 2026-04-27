@@ -91,11 +91,25 @@ const crear = async ({ id_cliente, id_direccion, nueva_direccion, costo_domicili
   const estadoPendiente = await prisma.estado.findFirst({ where: { nombre_estado: 'pendiente' } });
   const total           = subtotal + Number(costo_domicilio);
 
+  // Calcular montos según método de pago
+  let montoEfectivo = null;
+  let montoTransfer = null;
+  if (metodo_pago === 'efectivo') {
+    montoEfectivo = total;
+  } else if (metodo_pago === 'transferencia') {
+    montoTransfer = total;
+  } else if (metodo_pago === 'mixto') {
+    montoEfectivo = Number(monto_efectivo) || 0;
+    montoTransfer = Number(monto_transferencia) || 0;
+  }
+
   return prisma.venta.create({
     data: {
       id_cliente, id_estado: estadoPendiente?.id_estado || 1,
       id_direccion: direccionId, costo_domicilio, observaciones,
-      metodo_pago: metodo_pago || null,
+      metodo_pago:         metodo_pago   || null,
+      monto_efectivo:      montoEfectivo,
+      monto_transferencia: montoTransfer,
       comprobante_url: comprobante_url || null,
       subtotal, total,
       detalleVentas: {
@@ -256,7 +270,7 @@ const misVentas = async (id_usuario) => {
 };
 
 // Cliente crea su propio pedido (auto-crea perfil de cliente si no existe)
-const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_domicilio = 3000, observaciones, items, metodo_pago, comprobante_url }) => {
+const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_domicilio = 3000, observaciones, items, metodo_pago, monto_efectivo, monto_transferencia, comprobante_url }) => {
   let cliente = await prisma.cliente.findUnique({ where: { id_usuario } });
   if (!cliente) {
     // Auto-crear perfil de cliente para cualquier usuario autenticado
@@ -280,7 +294,7 @@ const crearMiPedido = async (id_usuario, { id_direccion, nueva_direccion, costo_
     direccionId = dir.id_direccion;
   }
 
-  return crear({ id_cliente: cliente.id_cliente, id_direccion: direccionId, costo_domicilio, observaciones, items, metodo_pago, comprobante_url });
+  return crear({ id_cliente: cliente.id_cliente, id_direccion: direccionId, costo_domicilio, observaciones, items, metodo_pago, monto_efectivo, monto_transferencia, comprobante_url });
 };
 
 module.exports = { listar, filtrar, obtener, crear, cambiarEstado, anular, comprobante, whatsapp, totalVenta, misVentas, crearMiPedido };

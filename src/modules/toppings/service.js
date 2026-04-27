@@ -14,8 +14,8 @@ const actualizar   = async (id, datos) => { await obtener(id); return prisma.top
 const eliminar     = async (id) => {
   await obtener(id);
   const enUso = await prisma.detalleTopping.count({ where: { id_topping: id } });
-  if (enUso > 0) throw { status: 409, message: 'Este topping está usado en ventas y no se puede eliminar' };
-  return prisma.topping.update({ where: { id_topping: id }, data: { estado: 0 } });
+  if (enUso > 0) throw { status: 409, message: `No se puede eliminar: está usado en ${enUso} pedido(s).` };
+  return prisma.topping.delete({ where: { id_topping: id } });
 };
 const cambiarEstado = async (id, estado) => { await obtener(id); return prisma.topping.update({ where: { id_topping: id }, data: { estado } }); };
 

@@ -14,8 +14,8 @@ const actualizar   = async (id, datos) => { await obtener(id); return prisma.adi
 const eliminar     = async (id) => {
   await obtener(id);
   const enUso = await prisma.detalleAdicion.count({ where: { id_adicion: id } });
-  if (enUso > 0) throw { status: 409, message: 'Esta adición está usada en ventas y no se puede eliminar' };
-  return prisma.adicion.update({ where: { id_adicion: id }, data: { estado: 0 } });
+  if (enUso > 0) throw { status: 409, message: `No se puede eliminar: está usada en ${enUso} pedido(s).` };
+  return prisma.adicion.delete({ where: { id_adicion: id } });
 };
 const cambiarEstado = async (id, estado) => { await obtener(id); return prisma.adicion.update({ where: { id_adicion: id }, data: { estado } }); };
 
