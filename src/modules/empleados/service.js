@@ -27,7 +27,7 @@ const crear = async ({ nombre, email, contrasena, id_rol, cargo, fecha_ingreso }
   const hash = await bcrypt.hash(contrasena, 10);
   return prisma.$transaction(async (tx) => {
     const usuario = await tx.usuario.create({
-      data: { nombre, email, contrasena: hash, id_rol, estado: 1 },
+      data: { nombre, email, contrasena: hash, id_rol: id_rol || 2, estado: 1 },
     });
     return tx.empleado.create({
       data: { id_usuario: usuario.id_usuario, cargo, fecha_ingreso: new Date(fecha_ingreso), estado: 1 },

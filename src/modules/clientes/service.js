@@ -11,7 +11,7 @@ const crear = async ({ nombre, email, contrasena, direccion, barrio, ciudad, tel
   const hash   = await bcrypt.hash(contrasena, 10);
   return prisma.$transaction(async (tx) => {
     const usuario = await tx.usuario.create({
-      data: { nombre, email, contrasena: hash, id_rol: 2, estado: 1 },
+      data: { nombre, email, contrasena: hash, id_rol: 4, estado: 1 },
     });
     return tx.cliente.create({
       data: { id_usuario: usuario.id_usuario, direccion, barrio, ciudad, telefono },
@@ -55,10 +55,13 @@ const eliminar = async (id) => {
 
 const cambiarEstado = async (id, estado) => {
   const c = await obtener(id);
-  return prisma.usuario.update({
-    where: { id_usuario: c.id_usuario },
-    data: { estado },
-    select: { id_usuario: true, nombre: true, email: true, estado: true },
+  return prisma.$transaction(async (tx) => {
+    await tx.cliente.update({ where: { id_cliente: id }, data: { estado } });
+    return tx.usuario.update({
+      where: { id_usuario: c.id_usuario },
+      data: { estado },
+      select: { id_usuario: true, nombre: true, email: true, estado: true },
+    });
   });
 };
 
