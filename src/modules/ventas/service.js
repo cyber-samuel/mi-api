@@ -140,8 +140,10 @@ const cambiarEstado = async (id, datos, id_usuario) => {
     estadoNombre = estado.nombre_estado;
   }
   const updateData = { id_estado: estadoId };
-  if (metodo_pago)      updateData.metodo_pago      = metodo_pago;
-  if (comprobante_url)  updateData.comprobante_url  = comprobante_url;
+  if (metodo_pago)                              updateData.metodo_pago         = metodo_pago;
+  if (comprobante_url)                          updateData.comprobante_url     = comprobante_url;
+  if (monto_efectivo      != null)              updateData.monto_efectivo      = Number(monto_efectivo);
+  if (monto_transferencia != null)              updateData.monto_transferencia = Number(monto_transferencia);
   const ventaActualizada = await prisma.venta.update({
     where: { id_venta: id }, data: updateData, include: includeDetalle,
   });
