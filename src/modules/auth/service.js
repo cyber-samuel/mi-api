@@ -77,20 +77,27 @@ const recuperarContrasena = async ({ email }) => {
 // ── Solicitar reset con código de 6 dígitos ─────────────
 const solicitarReset = async ({ email }) => {
   const usuario = await prisma.usuario.findUnique({ where: { email } });
-  // Siempre respondemos igual para no revelar si el email existe
   if (!usuario) return { mensaje: 'Si el email existe, recibirás un código en breve.' };
 
   const codigo = Math.floor(100000 + Math.random() * 900000).toString();
   resetTokens.set(email, { token: codigo, expiry: Date.now() + 15 * 60_000 }); // 15 min
 
+  let emailEnviado = false;
   try {
     await enviarCodigoRecuperacion(email, codigo);
+    emailEnviado = true;
   } catch (err) {
     console.error('Error al enviar email de recuperación:', err?.message || err);
-    // No bloqueamos la respuesta aunque falle el email
   }
 
-  return { mensaje: 'Si el email existe, recibirás un código en breve.' };
+  const resp = {
+    mensaje: emailEnviado
+      ? 'Código enviado a tu correo electrónico'
+      : 'No se pudo enviar el email — usa el código de desarrollo',
+  };
+  // Si el email no se pudo enviar, devolver el código para desarrollo/demo
+  if (!emailEnviado) resp.dev_token = codigo;
+  return resp;
 };
 
 // ── Verificar código y cambiar contraseña ───────────────
