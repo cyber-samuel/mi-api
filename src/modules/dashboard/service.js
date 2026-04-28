@@ -101,25 +101,27 @@ const productosMasVendidos = async () => {
 };
 
 const totalDia = async (fecha) => {
-  const fechaCO = fecha || new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const inicio  = new Date(fechaCO + 'T05:00:00.000Z');
-  const fin     = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
-
   const estadoAnulado   = await prisma.estado.findFirst({ where: { nombre_estado: 'anulado' } });
   const estadoEntregado = await prisma.estado.findFirst({ where: { nombre_estado: 'entregado' } });
 
+  const fechaWhere = fecha ? (() => {
+    const inicio = new Date(fecha + 'T05:00:00.000Z');
+    const fin    = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
+    return { gte: inicio, lt: fin };
+  })() : undefined;
+
   const [result, domicilios, pagos] = await Promise.all([
     prisma.venta.aggregate({
-      where: { fecha: { gte: inicio, lt: fin }, id_estado: { not: estadoAnulado?.id_estado } },
+      where: { ...(fechaWhere ? { fecha: fechaWhere } : {}), id_estado: { not: estadoAnulado?.id_estado } },
       _sum:   { total: true },
       _count: { id_venta: true },
     }),
     prisma.venta.aggregate({
-      where: { fecha: { gte: inicio, lt: fin }, id_estado: estadoEntregado?.id_estado },
+      where: { ...(fechaWhere ? { fecha: fechaWhere } : {}), id_estado: estadoEntregado?.id_estado },
       _sum: { costo_domicilio: true },
     }),
     prisma.detallePago.findMany({
-      where: { pago: { venta: { fecha: { gte: inicio, lt: fin }, id_estado: estadoEntregado?.id_estado } } },
+      where: { pago: { venta: { ...(fechaWhere ? { fecha: fechaWhere } : {}), id_estado: estadoEntregado?.id_estado } } },
       include: { metodoPago: true },
     }),
   ]);
@@ -128,12 +130,12 @@ const totalDia = async (fecha) => {
   const transferencia = pagos.filter((p) => p.metodoPago?.nombre === 'transferencia').reduce((a, p) => a + Number(p.monto), 0);
 
   return {
-    fecha:              fechaCO,
-    total_ventas:       result._count.id_venta,
-    monto_total:        result._sum.total || 0,
-    total_efectivo:     efectivo,
+    fecha:               fecha || null,
+    total_ventas:        result._count.id_venta,
+    monto_total:         result._sum.total || 0,
+    total_efectivo:      efectivo,
     total_transferencia: transferencia,
-    total_domicilios:   Number(domicilios._sum.costo_domicilio || 0),
+    total_domicilios:    Number(domicilios._sum.costo_domicilio || 0),
   };
 };
 
