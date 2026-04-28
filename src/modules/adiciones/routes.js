@@ -5,11 +5,13 @@ const checkPermiso = require('../../middlewares/checkPermiso');
 
 const router = Router();
 
-router.get('/',             verifyToken, checkPermiso('adiciones.listar'),   controller.listar);
-router.post('/',            verifyToken, checkPermiso('adiciones.crear'),    controller.crear);
-router.get('/:id',          verifyToken, checkPermiso('adiciones.ver'),      controller.obtener);
-router.put('/:id',          verifyToken, checkPermiso('adiciones.editar'),   controller.actualizar);
-router.delete('/:id',       verifyToken, checkPermiso('adiciones.eliminar'), controller.eliminar);
-router.patch('/:id/estado', verifyToken, checkPermiso('adiciones.estado'),   controller.cambiarEstado);
+const ga = checkPermiso('gestionar_adiciones');
+
+router.get('/',             verifyToken, ga, controller.listar);
+router.post('/',            verifyToken, ga, controller.crear);
+router.get('/:id',          verifyToken, ga, controller.obtener);
+router.put('/:id',          verifyToken, ga, controller.actualizar);
+router.delete('/:id',       verifyToken, ga, controller.eliminar);
+router.patch('/:id/estado', verifyToken, ga, controller.cambiarEstado);
 
 module.exports = router;

@@ -5,18 +5,21 @@ const checkPermiso = require('../../middlewares/checkPermiso');
 
 const router = Router();
 
-router.get('/buscar',                  verifyToken, checkPermiso('clientes.listar'),    controller.buscar);
-router.get('/',                        verifyToken, checkPermiso('clientes.listar'),    controller.listar);
-router.post('/',                       verifyToken, checkPermiso('clientes.crear'),     controller.crear);
-router.get('/:id',                     verifyToken, checkPermiso('clientes.ver'),       controller.obtener);
-router.put('/:id',                     verifyToken, checkPermiso('clientes.editar'),    controller.actualizar);
-router.delete('/:id',                  verifyToken, checkPermiso('clientes.eliminar'),  controller.eliminar);
-router.patch('/:id/estado',            verifyToken, checkPermiso('clientes.estado'),    controller.cambiarEstado);
-router.get('/:id/historial-pedidos',   verifyToken, checkPermiso('clientes.historial'), controller.historialPedidos);
-router.get('/:id/toppings-favoritos',  verifyToken, checkPermiso('clientes.favoritos'), controller.toppingsFavoritos);
-router.get('/:id/adiciones-favoritas', verifyToken, checkPermiso('clientes.favoritos'), controller.adicionesFavoritas);
-router.get('/:id/perfil',              verifyToken, checkPermiso('clientes.perfil'),    controller.perfil);
-router.get('/:id/direcciones',         verifyToken, checkPermiso('clientes.ver'),       controller.listarDirecciones);
-router.post('/:id/direcciones',        verifyToken, checkPermiso('clientes.editar'),    controller.crearDireccion);
+const ver      = checkPermiso('ver_clientes');
+const gestionar = checkPermiso('gestionar_clientes');
+
+router.get('/buscar',                  verifyToken, ver,       controller.buscar);
+router.get('/',                        verifyToken, ver,       controller.listar);
+router.post('/',                       verifyToken, gestionar, controller.crear);
+router.get('/:id',                     verifyToken, ver,       controller.obtener);
+router.put('/:id',                     verifyToken, gestionar, controller.actualizar);
+router.delete('/:id',                  verifyToken, gestionar, controller.eliminar);
+router.patch('/:id/estado',            verifyToken, gestionar, controller.cambiarEstado);
+router.get('/:id/historial-pedidos',   verifyToken, ver,       controller.historialPedidos);
+router.get('/:id/toppings-favoritos',  verifyToken, ver,       controller.toppingsFavoritos);
+router.get('/:id/adiciones-favoritas', verifyToken, ver,       controller.adicionesFavoritas);
+router.get('/:id/perfil',              verifyToken, ver,       controller.perfil);
+router.get('/:id/direcciones',         verifyToken, ver,       controller.listarDirecciones);
+router.post('/:id/direcciones',        verifyToken, gestionar, controller.crearDireccion);
 
 module.exports = router;

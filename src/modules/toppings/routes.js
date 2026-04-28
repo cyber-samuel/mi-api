@@ -5,11 +5,13 @@ const checkPermiso = require('../../middlewares/checkPermiso');
 
 const router = Router();
 
-router.get('/',             verifyToken, checkPermiso('toppings.listar'),   controller.listar);
-router.post('/',            verifyToken, checkPermiso('toppings.crear'),    controller.crear);
-router.get('/:id',          verifyToken, checkPermiso('toppings.ver'),      controller.obtener);
-router.put('/:id',          verifyToken, checkPermiso('toppings.editar'),   controller.actualizar);
-router.delete('/:id',       verifyToken, checkPermiso('toppings.eliminar'), controller.eliminar);
-router.patch('/:id/estado', verifyToken, checkPermiso('toppings.estado'),   controller.cambiarEstado);
+const gt = checkPermiso('gestionar_toppings');
+
+router.get('/',             verifyToken, gt, controller.listar);
+router.post('/',            verifyToken, gt, controller.crear);
+router.get('/:id',          verifyToken, gt, controller.obtener);
+router.put('/:id',          verifyToken, gt, controller.actualizar);
+router.delete('/:id',       verifyToken, gt, controller.eliminar);
+router.patch('/:id/estado', verifyToken, gt, controller.cambiarEstado);
 
 module.exports = router;

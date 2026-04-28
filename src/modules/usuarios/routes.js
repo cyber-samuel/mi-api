@@ -5,14 +5,17 @@ const checkPermiso = require('../../middlewares/checkPermiso');
 
 const router = Router();
 
+const ver      = checkPermiso('ver_usuarios');
+const gestionar = checkPermiso('gestionar_usuarios');
+
 // Estáticas antes de /:id
-router.get('/buscar',               verifyToken, checkPermiso('usuarios.listar'),          controller.buscar);
-router.get('/',                     verifyToken, checkPermiso('usuarios.listar'),           controller.listar);
-router.post('/',                    verifyToken, checkPermiso('usuarios.crear'),            controller.crear);
-router.get('/:id',                  verifyToken, checkPermiso('usuarios.ver'),              controller.obtener);
-router.put('/:id',                  verifyToken, checkPermiso('usuarios.editar'),           controller.actualizar);
-router.delete('/:id',               verifyToken, checkPermiso('usuarios.eliminar'),         controller.eliminar);
-router.patch('/:id/activar-desactivar', verifyToken, checkPermiso('usuarios.activar-desactivar'), controller.activarDesactivar);
-router.patch('/:id/rol',            verifyToken, checkPermiso('usuarios.asignar-rol'),      controller.asignarRol);
+router.get('/buscar',                   verifyToken, ver,       controller.buscar);
+router.get('/',                         verifyToken, ver,       controller.listar);
+router.post('/',                        verifyToken, gestionar, controller.crear);
+router.get('/:id',                      verifyToken, ver,       controller.obtener);
+router.put('/:id',                      verifyToken, gestionar, controller.actualizar);
+router.delete('/:id',                   verifyToken, gestionar, controller.eliminar);
+router.patch('/:id/activar-desactivar', verifyToken, gestionar, controller.activarDesactivar);
+router.patch('/:id/rol',                verifyToken, gestionar, controller.asignarRol);
 
 module.exports = router;

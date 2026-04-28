@@ -5,13 +5,15 @@ const checkPermiso = require('../../middlewares/checkPermiso');
 
 const router = Router();
 
+const gc = checkPermiso('gestionar_categorias');
+
 // Estáticas primero
-router.get('/buscar',       verifyToken, checkPermiso('categorias.listar'), controller.buscar);
-router.get('/',             verifyToken, checkPermiso('categorias.listar'), controller.listar);
-router.post('/',            verifyToken, checkPermiso('categorias.crear'),  controller.crear);
-router.get('/:id',          verifyToken, checkPermiso('categorias.listar'), controller.obtener);
-router.put('/:id',          verifyToken, checkPermiso('categorias.editar'), controller.actualizar);
-router.delete('/:id',       verifyToken, checkPermiso('categorias.eliminar'), controller.eliminar);
-router.patch('/:id/estado', verifyToken, checkPermiso('categorias.estado'), controller.cambiarEstado);
+router.get('/buscar',       verifyToken, gc, controller.buscar);
+router.get('/',             verifyToken, gc, controller.listar);
+router.post('/',            verifyToken, gc, controller.crear);
+router.get('/:id',          verifyToken, gc, controller.obtener);
+router.put('/:id',          verifyToken, gc, controller.actualizar);
+router.delete('/:id',       verifyToken, gc, controller.eliminar);
+router.patch('/:id/estado', verifyToken, gc, controller.cambiarEstado);
 
 module.exports = router;
