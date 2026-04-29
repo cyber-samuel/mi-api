@@ -1,5 +1,15 @@
 const prisma = require('../../config/prisma');
 
+const MESES  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const DIAS_S = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+const horaLabel = (h) => {
+  if (h === 0)  return '12am';
+  if (h < 12)   return `${h}am`;
+  if (h === 12) return '12pm';
+  return `${h - 12}pm`;
+};
+
 const ventasPorMes = async () => {
   const año = new Date().getFullYear();
   const raw = await prisma.$queryRaw`
@@ -16,7 +26,7 @@ const ventasPorMes = async () => {
   const meses = [];
   for (let m = 1; m <= 12; m++) {
     const found = raw.find((r) => Number(r.mes) === m);
-    meses.push({ año, mes: m, monto_total: found ? found.monto_total : 0 });
+    meses.push({ label: MESES[m - 1], mes: m, año, total: Number(found?.monto_total || 0) });
   }
   return meses;
 };
@@ -33,45 +43,35 @@ const ventasPorDia = async (fecha) => {
   });
 
   const horas = {};
-  for (let h = 0; h < 24; h++) horas[`${h}:00`] = 0;
+  for (let h = 0; h < 24; h++) horas[h] = 0;
   ventas.forEach((v) => {
-    const hora  = (new Date(v.fecha).getUTCHours() - 5 + 24) % 24;
-    const label = hora + ':00';
-    horas[label] = horas[label] + Number(v.total);
+    const hora = (new Date(v.fecha).getUTCHours() - 5 + 24) % 24;
+    horas[hora] = horas[hora] + Number(v.total);
   });
 
   const nonZero = Object.entries(horas).filter(([, t]) => t > 0);
   if (nonZero.length === 0) return [{ label: '—', total: 0 }];
   return nonZero
     .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-    .map(([label, total]) => ({ label, total }));
+    .map(([h, total]) => ({ label: horaLabel(Number(h)), total }));
 };
 
 const ventasPorSemana = async () => {
-  const raw = await prisma.$queryRaw`
-    SELECT
-      EXTRACT(YEAR FROM fecha)::int AS año,
-      EXTRACT(WEEK FROM fecha)::int AS semana,
-      COALESCE(SUM(total),0)        AS monto_total
-    FROM ventas
-    WHERE fecha >= NOW() - INTERVAL '90 days'
-      AND id_estado != (SELECT id_estado FROM estados WHERE nombre_estado = 'anulado' LIMIT 1)
-    GROUP BY año, semana
-    ORDER BY año DESC, semana DESC
-    LIMIT 12
-  `;
-  // Build last 4 weeks always with 0 if no data
-  const now = new Date();
-  const semanas = [];
-  for (let i = 3; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-    const año = d.getFullYear();
-    const startOfYear = new Date(año, 0, 1);
-    const semana = Math.ceil(((d - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
-    const found = raw.find((r) => Number(r.año) === año && Number(r.semana) === semana);
-    semanas.push({ año, semana, monto_total: found ? found.monto_total : 0 });
+  const estadoAnulado = await prisma.estado.findFirst({ where: { nombre_estado: 'anulado' } });
+  const nowCO = new Date(Date.now() - 5 * 60 * 60 * 1000);
+  const result = [];
+  for (let i = 6; i >= 0; i--) {
+    const d      = new Date(nowCO.getTime() - i * 24 * 60 * 60 * 1000);
+    const isoDay = d.toISOString().slice(0, 10);
+    const inicio = new Date(isoDay + 'T05:00:00.000Z');
+    const fin    = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
+    const agg    = await prisma.venta.aggregate({
+      where: { fecha: { gte: inicio, lt: fin }, id_estado: { not: estadoAnulado?.id_estado } },
+      _sum: { total: true },
+    });
+    result.push({ label: DIAS_S[d.getDay()], total: Number(agg._sum.total || 0) });
   }
-  return semanas;
+  return result;
 };
 
 const productosMasVendidos = async () => {
@@ -90,9 +90,9 @@ const productosMasVendidos = async () => {
     take: 10,
   });
 
-  const ids = agrupados.map((r) => r.id_producto);
+  const ids      = agrupados.map((r) => r.id_producto);
   const productos = await prisma.producto.findMany({ where: { id_producto: { in: ids } } });
-  const map = Object.fromEntries(productos.map((p) => [p.id_producto, p]));
+  const map      = Object.fromEntries(productos.map((p) => [p.id_producto, p]));
 
   return agrupados.map((r) => ({
     producto:      map[r.id_producto],
@@ -145,26 +145,39 @@ const domiciliariosDia = async (fecha) => {
   const fin     = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
 
   const ventas = await prisma.venta.findMany({
-    where: {
-      fecha: { gte: inicio, lt: fin },
-      estado: { nombre_estado: 'entregado' },
-    },
+    where: { fecha: { gte: inicio, lt: fin }, estado: { nombre_estado: 'entregado' } },
     include: {
+      // Pagos → empleado que cobró (fuente principal del nombre del domi)
+      pagos: { include: {
+        empleado: { include: { usuario: true } },
+        detallePagos: { include: { metodoPago: true } },
+      }},
+      // VentaDomiciliario como fallback
       ventasDomiciliario: { include: { empleado: { include: { usuario: true } } } },
-      pagos: { include: { detallePagos: { include: { metodoPago: true } } } },
     },
   });
 
   const resumen = {};
   ventas.forEach((v) => {
-    const domi = v.ventasDomiciliario?.[0]?.empleado?.usuario?.nombre || 'Sin asignar';
-    if (!resumen[domi]) resumen[domi] = { nombre: domi, entregas: 0, efectivo: 0, transferencia: 0, total: 0 };
-    resumen[domi].entregas++;
-    resumen[domi].total += Number(v.total);
-    v.pagos?.[0]?.detallePagos?.forEach((dp) => {
-      if (dp.metodoPago?.nombre === 'efectivo')      resumen[domi].efectivo      += Number(dp.monto);
-      if (dp.metodoPago?.nombre === 'transferencia') resumen[domi].transferencia += Number(dp.monto);
-    });
+    const nombre = v.pagos?.[0]?.empleado?.usuario?.nombre
+      || v.ventasDomiciliario?.[0]?.empleado?.usuario?.nombre
+      || 'Sin asignar';
+
+    if (!resumen[nombre]) resumen[nombre] = { nombre, entregas: 0, efectivo: 0, transferencia: 0, total: 0 };
+    resumen[nombre].entregas++;
+    resumen[nombre].total += Number(v.total);
+
+    const detallePagos = v.pagos?.[0]?.detallePagos || [];
+    if (detallePagos.length > 0) {
+      detallePagos.forEach((dp) => {
+        if (dp.metodoPago?.nombre === 'efectivo')      resumen[nombre].efectivo      += Number(dp.monto);
+        if (dp.metodoPago?.nombre === 'transferencia') resumen[nombre].transferencia += Number(dp.monto);
+      });
+    } else {
+      // Fallback a columnas de la venta
+      resumen[nombre].efectivo      += Number(v.monto_efectivo      || 0);
+      resumen[nombre].transferencia += Number(v.monto_transferencia || 0);
+    }
   });
   return Object.values(resumen);
 };
@@ -186,10 +199,7 @@ const recaudoPedidos = async () => {
     _sum:   { total_pagado: true },
     _count: { id_pago: true },
   });
-  return {
-    total_pagos:   result._count.id_pago,
-    total_recaudo: result._sum.total_pagado || 0,
-  };
+  return { total_pagos: result._count.id_pago, total_recaudo: result._sum.total_pagado || 0 };
 };
 
 const pedidosRecientes = async (limite = 10, fecha) => {
