@@ -56,22 +56,37 @@ const ventasPorDia = async (fecha) => {
     .map(([h, total]) => ({ label: horaLabel(Number(h)), total }));
 };
 
-const ventasPorSemana = async () => {
+const ventasPorSemana = async (fecha) => {
   const estadoAnulado = await prisma.estado.findFirst({ where: { nombre_estado: 'anulado' } });
-  const nowCO = new Date(Date.now() - 5 * 60 * 60 * 1000);
-  const result = [];
-  for (let i = 6; i >= 0; i--) {
-    const d      = new Date(nowCO.getTime() - i * 24 * 60 * 60 * 1000);
-    const isoDay = d.toISOString().slice(0, 10);
-    const inicio = new Date(isoDay + 'T05:00:00.000Z');
+  const hoy = fecha
+    ? new Date(fecha + 'T12:00:00.000Z')
+    : new Date(Date.now() - 5 * 60 * 60 * 1000); // Colombia UTC-5
+
+  // Calcular lunes de la semana actual
+  const diaSemana = hoy.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
+  const diasDesdeElLunes = diaSemana === 0 ? 6 : diaSemana - 1;
+  const lunesCO = new Date(hoy);
+  lunesCO.setDate(hoy.getDate() - diasDesdeElLunes);
+  const lunesISO = lunesCO.toISOString().slice(0, 10);
+  const lunes = new Date(lunesISO + 'T05:00:00.000Z'); // medianoche Colombia
+
+  const diasSemana = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const ventas = await prisma.venta.findMany({
+    where: {
+      fecha: { gte: lunes, lt: new Date(lunes.getTime() + 7 * 24 * 60 * 60 * 1000) },
+      id_estado: { not: estadoAnulado?.id_estado },
+    },
+    select: { fecha: true, total: true },
+  });
+
+  return diasSemana.map((label, i) => {
+    const inicio = new Date(lunes.getTime() + i * 24 * 60 * 60 * 1000);
     const fin    = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
-    const agg    = await prisma.venta.aggregate({
-      where: { fecha: { gte: inicio, lt: fin }, id_estado: { not: estadoAnulado?.id_estado } },
-      _sum: { total: true },
-    });
-    result.push({ label: DIAS_S[d.getDay()], total: Number(agg._sum.total || 0) });
-  }
-  return result;
+    const total  = ventas
+      .filter((v) => new Date(v.fecha) >= inicio && new Date(v.fecha) < fin)
+      .reduce((s, v) => s + Number(v.total), 0);
+    return { label, total };
+  });
 };
 
 const productosMasVendidos = async () => {
