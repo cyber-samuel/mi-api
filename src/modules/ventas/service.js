@@ -6,7 +6,10 @@ const logger = require('../../utils/logger');
 const includeDetalle = {
   cliente:  { select: { id_cliente: true, telefono: true, ciudad: true, barrio: true, usuario: { select: { nombre: true, email: true } } } },
   estado:   true,
-  direccion: true,
+  // La dirección de la venta se lee de las columnas propias (direccion_linea/
+  // barrio/ciudad/referencia_direccion, copiadas al crear la venta), no de
+  // esta relación -- así el detalle de un pedido ya hecho no se ve afectado
+  // si el cliente edita o borra la dirección original después.
   pagos:    { include: { detallePagos: { include: { metodoPago: true } } } },
   movimientosPuntos: true,
   detalleVentas: {
@@ -89,21 +92,28 @@ const crear = async ({ id_cliente, id_direccion, nueva_direccion, costo_domicili
     direccionId = dir.id_direccion;
   }
 
+  // Snapshot de la dirección al momento de la compra -- igual que
+  // nombre_cliente/telefono_cliente, se copia a la venta como texto plano
+  // para que el detalle de un pedido ya hecho nunca dependa de que la fila
+  // original en `direcciones` siga existiendo (si el cliente la edita o la
+  // borra después, la venta ya facturada no debe verse afectada).
+  let direccionSnap = null;
+  if (direccionId) {
+    direccionSnap = await prisma.direccion.findUnique({
+      where: { id_direccion: direccionId },
+      select: { direccion_linea: true, barrio: true, ciudad: true, referencia: true, id_barrio: true },
+    });
+  }
+
   // El costo de domicilio nunca se confía del cliente: si la dirección tiene
   // un barrio del catálogo, el precio real de Barrio.precio_domicilio manda
   // sobre lo que haya mandado el front (evita manipular el costo enviado).
   // Único escape: el admin pide explícitamente override_costo_domicilio=true
   // (ej: promoción puntual) — crearMiPedido() nunca manda ese flag, así que
   // el cliente jamás puede activarlo.
-  if (direccionId && !override_costo_domicilio) {
-    const dirResuelta = await prisma.direccion.findUnique({
-      where: { id_direccion: direccionId },
-      select: { id_barrio: true },
-    });
-    if (dirResuelta?.id_barrio) {
-      const barrio = await prisma.barrio.findUnique({ where: { id_barrio: dirResuelta.id_barrio } });
-      if (barrio) costo_domicilio = Number(barrio.precio_domicilio);
-    }
+  if (direccionId && !override_costo_domicilio && direccionSnap?.id_barrio) {
+    const barrio = await prisma.barrio.findUnique({ where: { id_barrio: direccionSnap.id_barrio } });
+    if (barrio) costo_domicilio = Number(barrio.precio_domicilio);
   }
 
   const productoIds = items.map((i) => i.id_producto);
@@ -188,6 +198,10 @@ const crear = async ({ id_cliente, id_direccion, nueva_direccion, costo_domicili
       nombre_cliente:  clienteSnap?.usuario?.nombre || null,
       telefono_cliente: clienteSnap?.telefono || null,
       id_direccion: direccionId, costo_domicilio, observaciones,
+      direccion_linea:      direccionSnap?.direccion_linea || null,
+      barrio:               direccionSnap?.barrio || null,
+      ciudad:               direccionSnap?.ciudad || null,
+      referencia_direccion: direccionSnap?.referencia || null,
       metodo_pago:         metodo_pago   || null,
       monto_efectivo:      montoEfectivo,
       monto_transferencia: montoTransfer,
@@ -509,10 +523,10 @@ const armarPayloadImpresion = async (id) => {
     id_venta:       venta.id_venta,
     cliente:        venta.nombre_cliente   || venta.cliente?.usuario?.nombre || '—',
     telefono:       venta.telefono_cliente || venta.cliente?.telefono        || '—',
-    direccion:      venta.direccion?.direccion_linea || '—',
-    barrio:         venta.direccion?.barrio || '',
-    ciudad:         venta.direccion?.ciudad || '',
-    referencia:     venta.direccion?.referencia || '',
+    direccion:      venta.direccion_linea || '—',
+    barrio:         venta.barrio || '',
+    ciudad:         venta.ciudad || '',
+    referencia:     venta.referencia_direccion || '',
     total:          venta.total,
     subtotal:       venta.subtotal,
     costo_domicilio: venta.costo_domicilio,

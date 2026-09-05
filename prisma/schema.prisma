@@ -255,6 +255,10 @@ model Venta {
   descuento_puntos    Float    @default(0)
   nombre_cliente      String?  @db.VarChar(100)
   telefono_cliente    String?  @db.VarChar(20)
+  direccion_linea     String?  @db.VarChar(255)
+  barrio              String?  @db.VarChar(100)
+  ciudad              String?  @db.VarChar(100)
+  referencia_direccion String? @db.VarChar(255)
 
   cliente   Cliente    @relation(fields: [id_cliente], references: [id_cliente])
   estado    Estado     @relation(fields: [id_estado], references: [id_estado])
