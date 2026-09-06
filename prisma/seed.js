@@ -24,23 +24,25 @@ async function main() {
 
   // ── Permisos (upsert por nombre único) ─────────────────
   // Lista depurada: solo los permisos realmente usados por checkPermiso()/checkPermisoAny()
-  // en las rutas, más los conceptuales que el negocio pidió mantener (ver_reportes).
+  // en las rutas activas y con una pantalla real en el frontend que los use.
   // NO agregar de vuelta el set legacy en notación punto (clientes.ver, productos.crear, etc.)
   // — se eliminaron el 2026 por duplicar/no usarse, ver commit "limpiar permisos duplicados".
+  // Auditoría 2026-09-06: se quitaron 7 permisos huérfanos que no protegían nada
+  // (ver_reportes) o protegían rutas de backend (pagos/metodos-pago) sin ninguna
+  // pantalla real en el admin -- ver_reportes, pagos.crear, pagos.ver,
+  // metodos_pago.listar/crear/editar/estado. Reemplazo de ver_reportes: ver_resenas.
   const permisosList = [
     'ver_dashboard', 'ver_ventas', 'gestionar_ventas',
     'cambiar_estado_venta', 'anular_venta', 'ver_clientes',
     'gestionar_clientes', 'ver_empleados', 'gestionar_empleados',
     'ver_usuarios', 'gestionar_usuarios', 'gestionar_productos',
     'gestionar_categorias', 'gestionar_toppings',
-    'gestionar_adiciones', 'gestionar_roles', 'ver_reportes',
+    'gestionar_adiciones', 'gestionar_roles', 'ver_resenas',
     'ver_pedidos_domiciliario', 'facturar_pedido',
     'confirmar_domicilios', 'gestionar_cocina', 'ver_cierre_caja',
     'gestionar_ciudades', 'gestionar_barrios',
     // En uso real por checkPermiso() aunque no están en la lista de negocio de 22:
     'ver_roles',
-    'pagos.crear', 'pagos.ver',
-    'metodos_pago.listar', 'metodos_pago.crear', 'metodos_pago.editar', 'metodos_pago.estado',
   ];
 
   for (const nombre of permisosList) {

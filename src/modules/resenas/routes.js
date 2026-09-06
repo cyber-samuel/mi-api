@@ -11,6 +11,6 @@ router.get('/resumen', controller.resumen);
 // (listar, admin) comparten el mismo prefijo /api/resenas -- un
 // app.use('/api/resenas', ...) los habría limitado a los tres por igual.
 router.post('/',       resenaLimiter, controller.crear);
-router.get('/',        verifyToken, checkPermiso('ver_dashboard'), controller.listar);
+router.get('/',        verifyToken, checkPermiso('ver_resenas'), controller.listar);
 
 module.exports = router;

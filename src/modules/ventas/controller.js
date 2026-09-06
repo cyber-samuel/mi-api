@@ -7,26 +7,13 @@ const filtrar      = async (req, res, next) => { try { success(res, await servic
 const obtener      = async (req, res, next) => { try { success(res, await service.obtener(Number(req.params.id))); } catch (e) { next(e); } };
 const crear        = async (req, res, next) => { try { success(res, await service.crear(crearVentaSchema.parse(req.body)), 'Venta creada', 201); } catch (e) { next(e); } };
 // PATCH /:id/estado acepta varios permisos amplios (cocina, domicilio, confirmador),
-// pero anular es una acción sensible propia — exige anular_venta explícitamente
-// aunque el usuario tenga alguno de los otros permisos de la ruta.
+// pero cada uno solo autoriza SU transición específica -- ver
+// TRANSICIONES_POR_PERMISO en ventas/service.js (cambiarEstado valida esto
+// cruzando el rol del usuario contra el estado destino pedido).
 const cambiarEstado = async (req, res, next) => {
   try {
     const parsed = estadoVentaSchema.parse(req.body);
-    const prisma = require('../../config/prisma');
-    let nombreDestino = parsed.nombre_estado;
-    if (!nombreDestino && parsed.id_estado) {
-      const estado = await prisma.estado.findUnique({ where: { id_estado: parsed.id_estado } });
-      nombreDestino = estado?.nombre_estado;
-    }
-    if (nombreDestino === 'anulado') {
-      const tienePermiso = await prisma.rolPermiso.findFirst({
-        where: { id_rol: req.user.id_rol, permiso: { nombre: 'anular_venta' } },
-      });
-      if (!tienePermiso) {
-        return res.status(403).json({ success: false, data: null, message: 'No tienes permiso para anular ventas' });
-      }
-    }
-    success(res, await service.cambiarEstado(Number(req.params.id), parsed, req.user?.id_usuario), 'Estado actualizado');
+    success(res, await service.cambiarEstado(Number(req.params.id), parsed, req.user?.id_usuario, req.user?.id_rol), 'Estado actualizado');
   } catch (e) { next(e); }
 };
 const anular       = async (req, res, next) => { try { success(res, await service.anular(Number(req.params.id), anularVentaSchema.parse(req.body).motivo_anulacion), 'Venta anulada'); } catch (e) { next(e); } };

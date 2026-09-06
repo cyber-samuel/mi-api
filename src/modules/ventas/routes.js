@@ -18,8 +18,13 @@ router.get('/:id',             verifyToken, checkPermiso('ver_ventas'),         
 router.get('/:id/total',       verifyToken, checkPermiso('ver_ventas'),                                 controller.totalVenta);
 router.get('/:id/comprobante', verifyToken, checkPermiso('ver_ventas'),                                 controller.comprobante);
 router.post('/:id/whatsapp',   verifyToken, checkPermiso('ver_ventas'),                                 controller.whatsapp);
-// cambiar_estado_venta (admin) | confirmar_domicilios (confirmador) | facturar_pedido (domi) | gestionar_cocina (cocinero)
-router.patch('/:id/estado',    verifyToken, checkPermisoAny('cambiar_estado_venta','confirmar_domicilios','facturar_pedido','gestionar_cocina'),  controller.cambiarEstado);
+// Puerta amplia: exige tener AL MENOS UNO de los permisos relevantes a este
+// endpoint compartido. Cuál transición específica autoriza cada uno se
+// valida aparte, dentro de cambiarEstado (ver TRANSICIONES_POR_PERMISO en
+// ventas/service.js) -- añadir anular_venta/gestionar_ventas aquí para que
+// esa validación interna nunca quede bloqueada antes de tiempo por esta
+// puerta si algún rol futuro solo tuviera uno de esos dos.
+router.patch('/:id/estado',    verifyToken, checkPermisoAny('cambiar_estado_venta','confirmar_domicilios','facturar_pedido','gestionar_cocina','anular_venta','gestionar_ventas'),  controller.cambiarEstado);
 router.patch('/:id/anular',    verifyToken, checkPermiso('anular_venta'),                               controller.anular);
 router.patch('/:id/editar',   verifyToken, checkPermiso('gestionar_ventas'),                              controller.editar);
 

@@ -252,7 +252,51 @@ const crear = async ({ id_cliente, id_direccion, nueva_direccion, costo_domicili
   return nuevaVenta;
 };
 
-const cambiarEstado = async (id, datos, id_usuario) => {
+// Qué permiso autoriza mover una venta a qué estado específico. PATCH
+// /ventas/:id/estado es un solo endpoint compartido por Cocina, Confirmador,
+// Domiciliario y el panel Ventas/Pedidos del admin -- el checkPermisoAny de
+// la ruta solo exige tener "alguno" de esos permisos, así que sin este mapeo
+// un Cocinero (que solo tiene gestionar_cocina) podía, llamando directo a la
+// API en vez de usar el botón real, mover una venta a "anulado" o
+// "despachado" igual de fácil que a "listo" -- auditoría 2026-09-06.
+//
+// El mapeo sale de revisar qué nombre_estado manda cada pantalla real hoy:
+// Cocina.jsx -> 'listo' | Domicilios.jsx (confirmar) -> 'en_proceso' |
+// PedidosDomiciliario.jsx -> 'despachado' (fallback de coger), 'entregado'
+// (entregar) y 'listo' (devolver un pedido ya tomado) | Ventas.jsx/
+// Pedidos.jsx admin -> 'listo' (Devolver a Listo). El "rechazar" del
+// Confirmador y el "anular" del admin NO pasan por aquí -- usan la ruta
+// separada /ventas/:id/anular, ya protegida solo por anular_venta.
+const TRANSICIONES_POR_PERMISO = {
+  confirmar_domicilios: ['en_proceso'],
+  gestionar_cocina:     ['listo'],
+  // Incluye 'listo' porque el domiciliario puede devolver a cocina un
+  // pedido que ya había tomado (PedidosDomiciliario.jsx).
+  facturar_pedido:      ['despachado', 'entregado', 'listo'],
+  anular_venta:         ['anulado'],
+  // Permisos amplios del panel Ventas/Pedidos del admin. 'anulado' queda
+  // deliberadamente fuera -- esa transición es exclusiva de anular_venta.
+  cambiar_estado_venta: ['en_proceso', 'listo', 'despachado', 'entregado'],
+  gestionar_ventas:     ['en_proceso', 'listo', 'despachado', 'entregado'],
+};
+
+const validarPermisoTransicion = async (id_rol, estadoNombre) => {
+  if (id_rol == null) return; // llamado interno (ej. tests) sin contexto de usuario -- no aplica
+  const permisosQueAutorizan = Object.entries(TRANSICIONES_POR_PERMISO)
+    .filter(([, estados]) => estados.includes(estadoNombre))
+    .map(([permiso]) => permiso);
+  if (permisosQueAutorizan.length === 0) {
+    throw { status: 400, message: `"${estadoNombre}" no es un estado al que se pueda mover una venta desde aquí` };
+  }
+  const autorizado = await prisma.rolPermiso.findFirst({
+    where: { id_rol, permiso: { nombre: { in: permisosQueAutorizan } } },
+  });
+  if (!autorizado) {
+    throw { status: 403, message: `Tu rol no tiene permiso para mover un pedido a "${estadoNombre}"` };
+  }
+};
+
+const cambiarEstado = async (id, datos, id_usuario, id_rol) => {
   const { id_estado, nombre_estado, metodo_pago, monto_efectivo, monto_transferencia, comprobante_url } = datos;
   const ventaActual = await obtener(id);
   let estadoId    = id_estado;
@@ -263,6 +307,15 @@ const cambiarEstado = async (id, datos, id_usuario) => {
     estadoId     = estado.id_estado;
     estadoNombre = estado.nombre_estado;
   }
+  // Si vino id_estado directo (sin nombre_estado), resolver el nombre igual
+  // -- si no, validarPermisoTransicion no tendría nada que cruzar contra el
+  // permiso y la transición quedaría sin validar.
+  if (estadoId && !estadoNombre) {
+    const estado = await prisma.estado.findUnique({ where: { id_estado: estadoId } });
+    estadoNombre = estado?.nombre_estado || null;
+  }
+  if (estadoNombre) await validarPermisoTransicion(id_rol, estadoNombre);
+
   // Validar motivo cuando se anula vía cambiarEstado
   if (estadoNombre === 'anulado') {
     const motivo = datos.motivo_anulacion || '';
