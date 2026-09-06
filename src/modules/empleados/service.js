@@ -77,6 +77,13 @@ const actualizar = async (id, datos) => {
     if (Object.keys(empDatos).length > 0) {
       await tx.empleado.update({ where: { id_empleado: id }, data: empDatos });
     }
+    // Si el cargo cambió (y por lo tanto el rol), esta persona ya no es
+    // cliente -- si le quedó un registro Cliente activo de antes (ej. era
+    // cliente y pasó a ser empleado), se desactiva. Nunca se borra, para
+    // no perder su historial de compras.
+    if (usuarioDatos.id_rol !== undefined) {
+      await tx.cliente.updateMany({ where: { id_usuario: emp.id_usuario, estado: 1 }, data: { estado: 0 } });
+    }
   });
   return obtener(id);
 };
